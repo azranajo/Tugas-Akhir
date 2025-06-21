@@ -124,20 +124,27 @@ def modify_color(image, hex_color="#FF0000"):
     img[mask] = rgb
     return img
 
-# OCR fungsi
+# Fungsi OCR
 def recognize_number(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
+# Fungsi mengurangi Noise 
+def reduce_noise(image):
+    # Gunakan bilateral filter untuk jaga tepi objek
+    filtered = cv2.bilateralFilter(image, d=9, sigmaColor=75, sigmaSpace=75)
+    return filtered
+
 # Proses utama
 results = []
 
 for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
-    shape = image.shape
-    pixels = image.reshape(-1, 3).astype(np.float32)
+    denoised = reduce_noise(image)
+    shape = denoised.shape
+    pixels = denoised.reshape(-1, 3).astype(np.float32)
 
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
