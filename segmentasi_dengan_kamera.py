@@ -28,7 +28,7 @@ for i in range(NUM_IMAGES):
     image = Image.open(stream).convert('RGB')
 
     # Simpan gambar ke file
-    image.save(f"data_capture/captured_{i}.jpg")
+    image_path = f"data_capture/captured_{i}.jpg"
     image.save(image_path)
 
     image_np = np.array(image)
