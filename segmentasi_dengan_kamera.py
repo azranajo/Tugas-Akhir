@@ -18,7 +18,7 @@ camera = PiCamera()
 camera.resolution = (640, 480)
 sleep(2)  # Tunggu kamera siap
 
-NUM_IMAGES = 10
+NUM_IMAGES = 2
 image_list = []
 
 for i in range(NUM_IMAGES):
