@@ -18,8 +18,8 @@ pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
 os.makedirs("data_capture", exist_ok=True)
 camera = PiCamera()
-camera.resolution = (640, 480)
-raw_capture = PiRGBArray(camera, size=(640, 480))
+camera.resolution = (320, 240)
+raw_capture = PiRGBArray(camera, size=(320, 240))
 sleep(2)  # Tunggu kamera siap
 
 NUM_IMAGES = 2
@@ -60,8 +60,8 @@ def capture_image():
 # Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
-panel = tk.Label(root)
-panel.pack()
+panel = tk.Label(root, width=320, height=240)
+panel.pack(pady=10)
 
 btn = tk.Button(root, text="Capture", font=("Arial", 24), bg="green", fg="white", command=capture_image)
 btn.pack(pady=20)
