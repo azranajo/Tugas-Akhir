@@ -92,11 +92,11 @@ for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
     results.append((file_name, recognized_number))
 
     # Optional visualisasi di Pi
-    #plt.figure(figsize=(6, 3))
-    #plt.subplot(1, 2, 1)
-    #plt.imshow(image)
-    #plt.title("Original")
-    #plt.axis("off")
+    plt.figure(figsize=(6, 3))
+    plt.subplot(1, 2, 1)
+    plt.imshow(image)
+    plt.title("Original")
+    plt.axis("off")
 
     plt.subplot(1, 1, 1)
     plt.imshow(colored)
