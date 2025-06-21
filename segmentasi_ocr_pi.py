@@ -61,10 +61,10 @@ def recognize_number(image):
     return text.strip()
 
 # Fungsi mengurangi Noise 
-def reduce_noise(image):
+#def reduce_noise(image):
     # Gunakan bilateral filter untuk jaga tepi objek
-    filtered = cv2.bilateralFilter(image, d=9, sigmaColor=75, sigmaSpace=75)
-    return filtered
+#    filtered = cv2.bilateralFilter(image, d=9, sigmaColor=75, sigmaSpace=75)
+#    return filtered
 
 # Proses utama
 results = []
@@ -74,9 +74,9 @@ for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
     image = cv2.imread(path)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    denoised = reduce_noise(image)
-    shape = denoised.shape
-    pixels = denoised.reshape(-1, 3).astype(np.float32)
+    #denoised = reduce_noise(image)
+    shape = image.shape
+    pixels = image.reshape(-1, 3).astype(np.float32)
 
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
