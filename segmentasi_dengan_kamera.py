@@ -45,7 +45,7 @@ def update_frame():
         panel.image = image_tk
         raw_capture.truncate(0)
 
-# Fungsi ketika tombol "Capture" ditekan
+# Fungsi ketika tombol "Capture" ditekan akan mengambil gambar
 def capture_image():
     global frame_np, captured, capture_count, image_list
     captured = True
@@ -57,14 +57,30 @@ def capture_image():
     print(f"Captured: {filename}")
     root.destroy()
 
+# Fungsi ketika tombol "exit" ditekan program akan berhenti
+def exit_program():
+    global captured
+    captured = True  # agar loop di update_frame berhenti
+    root.destroy()
+    print("Program dihentikan tanpa capture.")
+
 # Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
 panel = tk.Label(root, width=320, height=240)
 panel.pack(pady=10)
 
-btn = tk.Button(root, text="Capture", font=("Arial", 24), bg="green", fg="white", command=capture_image)
-btn.pack(pady=20)
+# Frame untuk menyusun tombol Capture dan Exit sejajar
+button_frame = tk.Frame(root)
+button_frame.pack(pady=20)
+
+# Tombol Capture
+btn_capture = tk.Button(button_frame, text="Capture", font=("Arial", 20), bg="green", fg="white", command=capture_image)
+btn_capture.pack(side="left", padx=20)
+
+# Tombol Exit
+btn_exit = tk.Button(button_frame, text="Exit", font=("Arial", 20), bg="red", fg="white", command=exit_program)
+btn_exit.pack(side="left", padx=20)
 
 # Jalankan preview di thread
 threading.Thread(target=update_frame, daemon=True).start()
