@@ -29,11 +29,16 @@ for i in range(NUM_IMAGES):
 
     # Simpan gambar ke file
     image.save(f"data_capture/captured_{i}.jpg")
+    image.save(image_path)
 
     image_np = np.array(image)
     image_list.append((f"capture_{i}.jpg", image_np))
-    print(f"Gambar ke-{i} berhasil di-capture.")
-    sleep(1)  # jeda antar capture
+
+    # Tampilkan di layar
+    cv2.imshow(f"Gambar ke-{i}", cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR))
+    print(f"Tekan tombol apapun untuk lanjut capture berikutnya...")
+    cv2.waitKey(0)  # tunggu sampai user tekan tombol
+    cv2.destroyAllWindows()
 
 camera.close()
 
