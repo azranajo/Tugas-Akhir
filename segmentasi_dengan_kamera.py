@@ -4,10 +4,13 @@ import numpy as np
 import pandas as pd
 import pytesseract
 import matplotlib.pyplot as plt
+import tkinter as tk
+import threading
 from tqdm import tqdm
+from picamera.array import PiRGBArray
 from picamera import PiCamera
 from time import sleep
-from PIL import Image
+from PIL import Image,ImageTk
 import io
 
 # Konfigurasi Tesseract di Raspberry
@@ -16,30 +19,56 @@ pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 os.makedirs("data_capture", exist_ok=True)
 camera = PiCamera()
 camera.resolution = (640, 480)
+raw_capture = PiRGBArray(camera, size=(640, 480))
 sleep(2)  # Tunggu kamera siap
 
 NUM_IMAGES = 2
 image_list = []
 
-for i in range(NUM_IMAGES):
-    stream = io.BytesIO()
-    camera.capture(stream, format='jpeg')
-    stream.seek(0)
-    image = Image.open(stream).convert('RGB')
+# Variabel global
+frame_np = None
+captured = False
+image_list = []
+capture_count = 0
 
-    # Simpan gambar ke file
-    image_path = f"data_capture/captured_{i}.jpg"
-    image.save(image_path)
+# Fungsi update live preview
+def update_frame():
+    global frame_np, panel, captured
+    for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
+        if captured:
+            break
+        frame_np = frame.array
+        rgb_image = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(rgb_image)
+        image_tk = ImageTk.PhotoImage(image_pil)
+        panel.config(image=image_tk)
+        panel.image = image_tk
+        raw_capture.truncate(0)
 
-    image_np = np.array(image)
-    image_list.append((f"capture_{i}.jpg", image_np))
+# Fungsi ketika tombol "Capture" ditekan
+def capture_image():
+    global frame_np, captured, capture_count, image_list
+    captured = True
+    rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+    img_pil = Image.fromarray(rgb)
+    filename = f"captured_{capture_count}.jpg"
+    img_pil.save(f"data_capture/{filename}")
+    image_list.append((filename, rgb))
+    print(f"Captured: {filename}")
+    root.destroy()
 
-    # Tampilkan di layar
-    cv2.imshow(f"Gambar ke-{i}", cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR))
-    print(f"Tekan tombol apapun untuk lanjut capture berikutnya...")
-    cv2.waitKey(0)  # tunggu sampai user tekan tombol
-    cv2.destroyAllWindows()
+# Setup GUI
+root = tk.Tk()
+root.attributes('-fullscreen', True)
+panel = tk.Label(root)
+panel.pack()
 
+btn = tk.Button(root, text="Capture", font=("Arial", 24), bg="green", fg="white", command=capture_image)
+btn.pack(pady=20)
+
+# Jalankan preview di thread
+threading.Thread(target=update_frame, daemon=True).start()
+root.mainloop()
 camera.close()
 
 # Fungsi K-Means
