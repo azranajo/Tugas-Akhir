@@ -93,7 +93,7 @@ for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
 
     plt.subplot(1, 2, 2)
     plt.imshow(colored)
-    plt.title(f"OCR: {recognized_number}")
+    plt.title(f"Angka yang dikenali: {recognized_number}")
     plt.axis("off")
     plt.tight_layout()
     plt.show()
