@@ -75,6 +75,9 @@ for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     #denoised = reduce_noise(image)
+    #shape = denoised.shape
+    #pixels = denoised.reshape(-1, 3).astype(np.float32)
+
     shape = image.shape
     pixels = image.reshape(-1, 3).astype(np.float32)
 
@@ -92,11 +95,11 @@ for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
     results.append((file_name, recognized_number))
 
     # Optional visualisasi di Pi
-    plt.figure(figsize=(6, 3))
-    plt.subplot(1, 2, 1)
-    plt.imshow(image)
-    plt.title("Original")
-    plt.axis("off")
+    #plt.figure(figsize=(6, 3))
+    #plt.subplot(1, 2, 1)
+    #plt.imshow(image)
+    #plt.title("Original")
+    #plt.axis("off")
 
     plt.subplot(1, 1, 1)
     plt.imshow(colored)

@@ -132,19 +132,22 @@ def recognize_number(image):
     return text.strip()
 
 # Fungsi mengurangi Noise 
-def reduce_noise(image):
+#def reduce_noise(image):
     # Gunakan bilateral filter untuk jaga tepi objek
-    filtered = cv2.bilateralFilter(image, d=9, sigmaColor=75, sigmaSpace=75)
-    return filtered
+#    filtered = cv2.bilateralFilter(image, d=9, sigmaColor=75, sigmaSpace=75)
+#    return filtered
 
 # Proses utama
 results = []
 
 for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
-    denoised = reduce_noise(image)
-    shape = denoised.shape
-    pixels = denoised.reshape(-1, 3).astype(np.float32)
+    #denoised = reduce_noise(image)
+    #shape = denoised.shape
+    #pixels = denoised.reshape(-1, 3).astype(np.float32)
+
+    shape = image.shape
+    pixels = image.reshape(-1, 3).astype(np.float32)
 
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
@@ -160,13 +163,13 @@ for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
     results.append((file_name, recognized_number))
 
     # Optional visualisasi di layar
-    plt.figure(figsize=(6, 3))
-    plt.subplot(1, 2, 1)
-    plt.imshow(image)
-    plt.title("Original")
-    plt.axis("off")
+    #plt.figure(figsize=(6, 3))
+    #plt.subplot(1, 2, 1)
+    #plt.imshow(image)
+    #plt.title("Original")
+    #plt.axis("off")
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 1, 1)
     plt.imshow(colored)
     plt.title(f"Angka yang dikenali: {recognized_number}")
     plt.axis("off")
