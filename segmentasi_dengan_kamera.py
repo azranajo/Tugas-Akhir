@@ -131,6 +131,16 @@ def recognize_number(image):
     text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
+# Fungsi resize dengan mempertahankan aspek rasio
+def resize_image(image, max_width=640, max_height=480):
+    h, w = image.shape[:2]
+    scale = min(max_width / w, max_height / h)
+    if scale < 1:  # hanya resize jika lebih kecil dari target
+        resized = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+    else:
+        resized = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
+    return resized
+
 # Fungsi mengurangi Noise 
 #def reduce_noise(image):
     # Gunakan bilateral filter untuk jaga tepi objek
@@ -142,12 +152,17 @@ results = []
 
 for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
+    resized = resize_image(image, max_width=640, max_height=480)
+
+    shape = resized.shape
+    pixels = resized.reshape(-1, 3).astype(np.float32)
+
     #denoised = reduce_noise(image)
     #shape = denoised.shape
     #pixels = denoised.reshape(-1, 3).astype(np.float32)
 
-    shape = image.shape
-    pixels = image.reshape(-1, 3).astype(np.float32)
+    #shape = image.shape
+    #pixels = image.reshape(-1, 3).astype(np.float32)
 
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
