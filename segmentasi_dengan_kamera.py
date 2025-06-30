@@ -11,19 +11,18 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 from time import sleep
 from PIL import Image,ImageTk
-import io
 
 # Konfigurasi Tesseract di Raspberry
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
+#Folder simpan data
 os.makedirs("data_capture", exist_ok=True)
-camera = PiCamera()
-camera.resolution = (320, 240)
-raw_capture = PiRGBArray(camera, size=(320, 240))
-sleep(2)  # Tunggu kamera siap
 
-NUM_IMAGES = 2
-image_list = []
+#konfigurasi kamera
+camera = PiCamera()
+camera.resolution = (640, 480)
+raw_capture = PiRGBArray(camera, size=(640, 480))
+sleep(2)  # Tunggu kamera siap
 
 # Variabel global
 frame_np = None
@@ -31,7 +30,7 @@ captured = False
 image_list = []
 capture_count = 0
 
-# Fungsi update live preview
+# Fungsi update preview kamera
 def update_frame():
     global frame_np, panel, captured
     for frame in camera.capture_continuous(raw_capture, format="bgr", use_video_port=True):
@@ -124,11 +123,19 @@ def modify_color(image, hex_color="#FF0000"):
     img[mask] = rgb
     return img
 
-# Fungsi OCR
-def recognize_number(image):
+# Preprocessing sebelum OCR
+def preprocess_for_ocr(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    kernel = np.ones((3, 3), np.uint8)
+    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
+    return closed
+
+# Fungsi OCR Angka
+def recognize_number(image):
+    preprocessed = preprocess_for_ocr(image)
+    text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
 # Fungsi resize dengan mempertahankan aspek rasio
