@@ -182,7 +182,7 @@ for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
 
-    k = 4
+    k = 5
     segmented_image, labels = kmeans(k, pixels, shape)
     final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
 
