@@ -139,7 +139,7 @@ def recognize_number(image):
     return text.strip()
 
 # Fungsi resize dengan mempertahankan aspek rasio
-def resize_image(image, max_width=320, max_height 240):
+def resize_image(image, max_width=320, max_height=240):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     if scale < 1:  # hanya resize jika lebih kecil dari target
