@@ -91,7 +91,10 @@ camera.close()
 def resize_image(image, max_width=320, max_height=240):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
-    resized = cv2.resize(image, (int(w * scale), int(h * scale)))
+    if scale < 1:
+        resized = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+    else:
+        resized = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
     return resized
 
 # Fungsi K-Means
@@ -146,33 +149,38 @@ def recognize_number(image):
     text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
-# Fungsi masking area lingkaran saja
-def mask_circle_area(image):
+# Deteksi lingkaran & crop
+def detect_circle_and_crop(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    gray_blurred = cv2.medianBlur(gray, 5)
-    circles = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT, dp=1, minDist=50,
-                               param1=50, param2=30, minRadius=50, maxRadius=120)
+    blurred = cv2.medianBlur(gray, 5)
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
+                               param1=50, param2=30, minRadius=50, maxRadius=140)
 
     if circles is not None:
         circles = np.uint16(np.around(circles))
+        x, y, r = circles[0][0]
         mask = np.zeros_like(gray)
-        for i in circles[0, :1]:  # pakai hanya satu lingkaran
-            cv2.circle(mask, (i[0], i[1]), i[2], 255, -1)
-        masked_img = cv2.bitwise_and(image, image, mask=mask)
-        return masked_img
+        cv2.circle(mask, (x, y), r, 255, -1)
+        masked = cv2.bitwise_and(image, image, mask=mask)
+        x1, y1 = max(x - r, 0), max(y - r, 0)
+        x2, y2 = x + r, y + r
+        return masked[y1:y2, x1:x2]
     else:
-        return image  # fallback jika tidak ada lingkaran
+        return None
 
 # Proses utama
 results = []
 
 for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
-    resized = resize_image(image, max_width=320, max_height=240)
-    masked = mask_circle_area(resized)
+    cropped = detect_circle_and_crop(image)
+    if cropped is None:
+        results.append((file_name, 'Lingkaran tidak ditemukan'))
+        continue
 
-    shape = masked.shape
-    pixels = masked.reshape(-1, 3).astype(np.float32)
+    resized = resize_image(cropped, max_width=320, max_height=240)
+    shape = resized.shape
+    pixels = resized.reshape(-1, 3).astype(np.float32)
 
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
