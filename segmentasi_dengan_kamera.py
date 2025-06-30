@@ -174,7 +174,7 @@ for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
     shape = masked.shape
     pixels = masked.reshape(-1, 3).astype(np.float32)
 
-    k = 5
+    k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
     final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
 
@@ -188,7 +188,7 @@ for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
     results.append((file_name, recognized_number))
 
     # visualisasi di layar
-    plt.figure(figsize=(4, 4))
+    plt.figure(figsize=(3, 3))
     plt.imshow(colored)
     plt.title(f"Angka yang dikenali: {recognized_number}")
     plt.axis("off")
