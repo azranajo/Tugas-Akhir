@@ -20,8 +20,8 @@ os.makedirs("data_capture", exist_ok=True)
 
 #konfigurasi kamera
 camera = PiCamera()
-camera.resolution = (640, 480)
-raw_capture = PiRGBArray(camera, size=(640, 480))
+camera.resolution = (320, 240)
+raw_capture = PiRGBArray(camera, size=(320, 240))
 sleep(2)  # Tunggu kamera siap
 
 # Variabel global
@@ -139,7 +139,7 @@ def recognize_number(image):
     return text.strip()
 
 # Fungsi resize dengan mempertahankan aspek rasio
-def resize_image(image, max_width=640, max_height=480):
+def resize_image(image, max_width=320, max_height 240):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     if scale < 1:  # hanya resize jika lebih kecil dari target
@@ -159,7 +159,7 @@ results = []
 
 for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
-    resized = resize_image(image, max_width=640, max_height=480)
+    resized = resize_image(image, max_width=320, max_height=240)
 
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
