@@ -86,6 +86,14 @@ threading.Thread(target=update_frame, daemon=True).start()
 root.mainloop()
 camera.close()
 
+
+# Resize image
+def resize_image(image, max_width=320, max_height=240):
+    h, w = image.shape[:2]
+    scale = min(max_width / w, max_height / h)
+    resized = cv2.resize(image, (int(w * scale), int(h * scale)))
+    return resized
+
 # Fungsi K-Means
 def kmeans(k, pixel_values, shape):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
@@ -138,21 +146,22 @@ def recognize_number(image):
     text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
-# Fungsi resize dengan mempertahankan aspek rasio
-def resize_image(image, max_width=320, max_height=240):
-    h, w = image.shape[:2]
-    scale = min(max_width / w, max_height / h)
-    if scale < 1:  # hanya resize jika lebih kecil dari target
-        resized = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-    else:
-        resized = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
-    return resized
+# Fungsi masking area lingkaran saja
+def mask_circle_area(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    gray_blurred = cv2.medianBlur(gray, 5)
+    circles = cv2.HoughCircles(gray_blurred, cv2.HOUGH_GRADIENT, dp=1, minDist=50,
+                               param1=50, param2=30, minRadius=50, maxRadius=120)
 
-# Fungsi mengurangi Noise 
-#def reduce_noise(image):
-    # Gunakan bilateral filter untuk jaga tepi objek
-#    filtered = cv2.bilateralFilter(image, d=9, sigmaColor=75, sigmaSpace=75)
-#    return filtered
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        mask = np.zeros_like(gray)
+        for i in circles[0, :1]:  # pakai hanya satu lingkaran
+            cv2.circle(mask, (i[0], i[1]), i[2], 255, -1)
+        masked_img = cv2.bitwise_and(image, image, mask=mask)
+        return masked_img
+    else:
+        return image  # fallback jika tidak ada lingkaran
 
 # Proses utama
 results = []
@@ -160,18 +169,12 @@ results = []
 for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
     resized = resize_image(image, max_width=320, max_height=240)
+    masked = mask_circle_area(resized)
 
-    shape = resized.shape
-    pixels = resized.reshape(-1, 3).astype(np.float32)
+    shape = masked.shape
+    pixels = masked.reshape(-1, 3).astype(np.float32)
 
-    #denoised = reduce_noise(image)
-    #shape = denoised.shape
-    #pixels = denoised.reshape(-1, 3).astype(np.float32)
-
-    #shape = image.shape
-    #pixels = image.reshape(-1, 3).astype(np.float32)
-
-    k = 4
+    k = 5
     segmented_image, labels = kmeans(k, pixels, shape)
     final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
 
@@ -184,14 +187,8 @@ for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
 
     results.append((file_name, recognized_number))
 
-    # Optional visualisasi di layar
-    #plt.figure(figsize=(6, 3))
-    #plt.subplot(1, 2, 1)
-    #plt.imshow(image)
-    #plt.title("Original")
-    #plt.axis("off")
-
-    plt.subplot(1, 1, 1)
+    # visualisasi di layar
+    plt.figure(figsize=(4, 4))
     plt.imshow(colored)
     plt.title(f"Angka yang dikenali: {recognized_number}")
     plt.axis("off")
