@@ -177,13 +177,13 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     plt.show()
 
     # Proses pengenalan untuk Cluster 3
-    final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
+    final_image = select_cluster_by_digit_shape(segmented_image, labels, 4)
 
     if final_image is None:
         results.append((file_name, ''))
         continue
 
-    colored = modify_color(cluster_vis)
+    colored = modify_color(final_image)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
 
