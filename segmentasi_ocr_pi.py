@@ -83,6 +83,16 @@ for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
 
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
+        # --- VISUALISASI CLUSTER ---
+    for i in range(k):
+        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+        plt.figure()
+        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+        plt.title(f"Cluster {i}")
+        plt.axis("off")
+        plt.show()
+        
     final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
 
     if final_image is None:
