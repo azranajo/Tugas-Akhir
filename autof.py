@@ -8,7 +8,7 @@ picam2 = Picamera2()
 picam2.start()
 
 # Mengaktifkan autofocus (secara default sudah aktif, tetapi kamu bisa menyesuaikannya)
-picam2.set_controls({"AfMode": 3})  # Mode autofocus, 3: Continuous (terus-menerus)
+picam2.set_controls({"AfMode": 1})  # Mode autofocus, 3: Continuous (terus-menerus)
 
 # Menunggu autofocus untuk menyesuaikan
 time.sleep(2)  # Tunggu 2 detik agar autofocus bisa menyesuaikan
