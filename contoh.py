@@ -1,32 +1,25 @@
 import os
 import cv2
 import numpy as np
-import pandas as pd
 import pytesseract
-import matplotlib.pyplot as plt
+import pandas as pd
 import tkinter as tk
-import threading
-from tqdm import tqdm
-from time import sleep
 from PIL import Image, ImageTk
 from picamera2 import Picamera2
+from time import sleep
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
-# Konfigurasi Tesseract
-pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
+# Path tesseract
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
 
-# Buat folder penyimpanan
+# Buat folder simpan hasil
 os.makedirs("data_capture", exist_ok=True)
 
-# Inisialisasi Kamera V3 (Picamera2)
+# Setup kamera V3
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(main={"size": (480, 320)})
+config = picam2.create_preview_configuration(main={"size": (320, 240)})
 picam2.configure(config)
-# Pengaturan otomatis brightness dan exposure
-picam2.set_controls({
-    "AeEnable": True,
-    "AwbEnable": True,
-    "ExposureValue": 0.0
-})
 picam2.start()
 sleep(2)
 
@@ -36,19 +29,20 @@ captured = False
 image_list = []
 capture_count = 0
 
-# Fungsi update preview kamera
+# Update tampilan kamera
 def update_frame():
     global frame_np, panel, captured
-    while not captured:
-        frame_np = picam2.capture_array()
-        rgb_image = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
-        image_pil = Image.fromarray(rgb_image)
-        image_tk = ImageTk.PhotoImage(image_pil)
-        panel.config(image=image_tk)
-        panel.image = image_tk
-        sleep(0.05)
+    if captured:
+        return
+    frame_np = picam2.capture_array()
+    rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+    img_pil = Image.fromarray(rgb)
+    img_tk = ImageTk.PhotoImage(img_pil)
+    panel.config(image=img_tk)
+    panel.image = img_tk
+    panel.after(10, update_frame)
 
-# Fungsi capture
+# Ambil gambar
 def capture_image():
     global frame_np, captured, capture_count, image_list
     captured = True
@@ -60,80 +54,54 @@ def capture_image():
     print(f"Captured: {filename}")
     root.destroy()
 
-# Fungsi keluar
 def exit_program():
     global captured
     captured = True
     root.destroy()
     print("Keluar tanpa mengambil gambar.")
 
-# Tampilkan hasil OCR di GUI
-def show_result_in_gui(image_rgb, result_text):
-    result_win = tk.Toplevel()
-    result_win.geometry("480x320")  # Sesuai dengan resolusi LCD
-    result_win.overrideredirect(True)  # Hilangkan title bar agar fullscreen sempurna
-    #result_win.attributes('-fullscreen', True)
-
-    img_pil = Image.fromarray(image_rgb).resize((480, 240), Image.ANTIALIAS)
-    img_tk = ImageTk.PhotoImage(img_pil)
-
-    img_label = tk.Label(result_win, image=img_tk)
-    img_label.image = img_tk
-    img_label.pack()
-
-    text_label = tk.Label(result_win, text=f"Angka dikenali: {result_text}", font=("Arial", 20))
-    text_label.pack()
-
-    btn_ok = tk.Button(result_win, text="OK", font=("Arial", 16), command=result_win.destroy)
-    btn_ok.pack()
-
-    separator = tk.Frame(root, height=2, width=480, bg="gray")
-    separator.place(x=0, y=240)
-
-
-# Setup GUI
+# GUI Tkinter fullscreen
 root = tk.Tk()
-root.geometry("480x320")
-root.overrideredirect(True)
-root.configure(bg="black")
+root.attributes('-fullscreen', True)
+panel = tk.Label(root, width=320, height=240)
+panel.pack(pady=10)
 
-panel = tk.Label(root, width=480, height=240, bg="black")
-panel.place(x=0, y=0)
+button_frame = tk.Frame(root)
+button_frame.pack(pady=20)
 
-# Tombol Capture dan Exit
-btn_capture = tk.Button(root, text="Capture", font=("Arial", 16), bg="green", fg="white", command=capture_image, width=10, height=2)
-btn_capture.place(x=40, y=260)
+btn_capture = tk.Button(button_frame, text="Capture", font=("Arial", 20), bg="green", fg="white", command=capture_image)
+btn_capture.pack(side="left", padx=20)
 
-btn_exit = tk.Button(root, text="Exit", font=("Arial", 16), bg="red", fg="white", command=exit_program, width=10, height=2)
-btn_exit.place(x=260, y=260)
+btn_exit = tk.Button(button_frame, text="Exit", font=("Arial", 20), bg="red", fg="white", command=exit_program)
+btn_exit.pack(side="left", padx=20)
 
-# Jalankan preview
-threading.Thread(target=update_frame, daemon=True).start()
+update_frame()
 root.mainloop()
 picam2.close()
 
-# ---------- PROSES SEGMENTASI & OCR ----------
-
-def resize_image(image, max_width=480, max_height=320):
+# --- Proses Gambar ---
+def resize_image(image, max_width=320, max_height=240):
     h, w = image.shape[:2]
+    if h == 0 or w == 0:
+        raise ValueError("Ukuran gambar tidak valid (lebar/tinggi = 0)")
     scale = min(max_width / w, max_height / h)
-    return cv2.resize(image, (int(w * scale), int(h * scale)))
+    return cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
 
 def kmeans(k, pixel_values, shape):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
     _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
     centers = np.uint8(centers)
-    labels = labels.flatten()
-    segmented_image = centers[labels]
-    return segmented_image.reshape(shape), labels
+    segmented_image = centers[labels.flatten()]
+    return segmented_image.reshape(shape), labels.reshape(shape[:2])
 
 def select_cluster_by_largest_contour(segmented_image, labels, k):
     max_area = -1
     selected_cluster_image = None
     for i in range(k):
-        im = np.copy(segmented_image).reshape(-1, 3)
-        im[labels != i] = [255, 255, 255]
-        cluster_img = im.reshape(segmented_image.shape)
+        cluster_img = np.copy(segmented_image)
+        mask = labels != i
+        mask_3d = np.stack([mask] * 3, axis=-1)
+        cluster_img[mask_3d] = [255, 255, 255]
         gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -167,8 +135,7 @@ def recognize_number(image):
 def detect_circle_and_crop(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     blurred = cv2.medianBlur(gray, 5)
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
-                               param1=50, param2=30, minRadius=50, maxRadius=140)
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1.2, 100, param1=50, param2=30, minRadius=50, maxRadius=140)
     if circles is not None:
         circles = np.uint16(np.around(circles))
         x, y, r = circles[0][0]
@@ -180,33 +147,34 @@ def detect_circle_and_crop(image):
         return masked[y1:y2, x1:x2]
     return None
 
-# Jalankan segmentasi & OCR
+# --- Proses hasil capture ---
 results = []
-for file_name, image in tqdm(image_list, desc="Processing"):
+for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
     cropped = detect_circle_and_crop(image)
     if cropped is None:
         results.append((file_name, 'Lingkaran tidak ditemukan'))
         continue
+
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
     k = 5
-    segmented_image, labels = kmeans(k, pixels, shape)
-    final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
+    segmented, labels = kmeans(k, pixels, shape)
+    final_image = select_cluster_by_largest_contour(segmented, labels, k)
     if final_image is None:
         results.append((file_name, ''))
         continue
-    colored = modify_color(final_image)
-    recognized_number = recognize_number(colored)
-    results.append((file_name, recognized_number))
-    show_result_in_gui(colored, recognized)
-    #plt.figure(figsize=(2, 1.5))
-    #plt.imshow(colored)
-    #plt.title(f"Angka dikenali: {recognized_number}", fontsize=10)
-    #plt.axis("off")
-    #plt.tight_layout(pad=0.2)
-    #plt.show()
 
-df = pd.DataFrame(results, columns=['Image', 'Recognized_Number'])
+    colored = modify_color(final_image)
+    recognized = recognize_number(colored)
+    results.append((file_name, recognized))
+
+    plt.imshow(colored)
+    plt.title(f"Angka: {recognized}")
+    plt.axis("off")
+    plt.show()
+
+# Simpan ke Excel
+df = pd.DataFrame(results, columns=["Image", "Recognized_Number"])
 df.to_excel("hasil_segmentasi_pi.xlsx", index=False)
-print("Selesai. Disimpan ke hasil_segmentasi_pi.xlsx")
+print("Selesai. Hasil disimpan di hasil_segmentasi_pi.xlsx")
