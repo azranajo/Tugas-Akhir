@@ -1,22 +1,23 @@
 import os
 import cv2
 import numpy as np
-import pytesseract
 import pandas as pd
+import pytesseract
+import matplotlib.pyplot as plt
 import tkinter as tk
+import threading
+from tqdm import tqdm
+from time import sleep
 from PIL import Image, ImageTk
 from picamera2 import Picamera2
-from time import sleep
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 
-# Path tesseract
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+# Konfigurasi Tesseract
+pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
-# Buat folder simpan hasil
+# Buat folder penyimpanan
 os.makedirs("data_capture", exist_ok=True)
 
-# Setup kamera V3
+# Inisialisasi Kamera V3 (Picamera2)
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(main={"size": (320, 240)})
 picam2.configure(config)
@@ -29,20 +30,19 @@ captured = False
 image_list = []
 capture_count = 0
 
-# Update tampilan kamera
+# Fungsi update preview kamera
 def update_frame():
     global frame_np, panel, captured
-    if captured:
-        return
-    frame_np = picam2.capture_array()
-    rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
-    img_pil = Image.fromarray(rgb)
-    img_tk = ImageTk.PhotoImage(img_pil)
-    panel.config(image=img_tk)
-    panel.image = img_tk
-    panel.after(10, update_frame)
+    while not captured:
+        frame_np = picam2.capture_array()
+        rgb_image = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(rgb_image)
+        image_tk = ImageTk.PhotoImage(image_pil)
+        panel.config(image=image_tk)
+        panel.image = image_tk
+        sleep(0.05)
 
-# Ambil gambar
+# Fungsi capture
 def capture_image():
     global frame_np, captured, capture_count, image_list
     captured = True
@@ -54,13 +54,14 @@ def capture_image():
     print(f"Captured: {filename}")
     root.destroy()
 
+# Fungsi keluar
 def exit_program():
     global captured
     captured = True
     root.destroy()
     print("Keluar tanpa mengambil gambar.")
 
-# GUI Tkinter fullscreen
+# Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
 panel = tk.Label(root, width=320, height=240)
@@ -75,33 +76,33 @@ btn_capture.pack(side="left", padx=20)
 btn_exit = tk.Button(button_frame, text="Exit", font=("Arial", 20), bg="red", fg="white", command=exit_program)
 btn_exit.pack(side="left", padx=20)
 
-update_frame()
+# Jalankan preview
+threading.Thread(target=update_frame, daemon=True).start()
 root.mainloop()
 picam2.close()
 
-# --- Proses Gambar ---
+# ---------- PROSES SEGMENTASI & OCR ----------
+
 def resize_image(image, max_width=320, max_height=240):
     h, w = image.shape[:2]
-    if h == 0 or w == 0:
-        raise ValueError("Ukuran gambar tidak valid (lebar/tinggi = 0)")
     scale = min(max_width / w, max_height / h)
-    return cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+    return cv2.resize(image, (int(w * scale), int(h * scale)))
 
 def kmeans(k, pixel_values, shape):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
     _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
     centers = np.uint8(centers)
-    segmented_image = centers[labels.flatten()]
-    return segmented_image.reshape(shape), labels.reshape(shape[:2])
+    labels = labels.flatten()
+    segmented_image = centers[labels]
+    return segmented_image.reshape(shape), labels
 
 def select_cluster_by_largest_contour(segmented_image, labels, k):
     max_area = -1
     selected_cluster_image = None
     for i in range(k):
-        cluster_img = np.copy(segmented_image)
-        mask = labels != i
-        mask_3d = np.stack([mask] * 3, axis=-1)
-        cluster_img[mask_3d] = [255, 255, 255]
+        im = np.copy(segmented_image).reshape(-1, 3)
+        im[labels != i] = [255, 255, 255]
+        cluster_img = im.reshape(segmented_image.shape)
         gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -135,7 +136,8 @@ def recognize_number(image):
 def detect_circle_and_crop(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     blurred = cv2.medianBlur(gray, 5)
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, 1.2, 100, param1=50, param2=30, minRadius=50, maxRadius=140)
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
+                               param1=50, param2=30, minRadius=50, maxRadius=140)
     if circles is not None:
         circles = np.uint16(np.around(circles))
         x, y, r = circles[0][0]
@@ -147,34 +149,30 @@ def detect_circle_and_crop(image):
         return masked[y1:y2, x1:x2]
     return None
 
-# --- Proses hasil capture ---
+# Jalankan segmentasi & OCR
 results = []
-for idx, (file_name, image) in enumerate(tqdm(image_list, desc="Processing")):
+for file_name, image in tqdm(image_list, desc="Processing"):
     cropped = detect_circle_and_crop(image)
     if cropped is None:
         results.append((file_name, 'Lingkaran tidak ditemukan'))
         continue
-
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
     k = 5
-    segmented, labels = kmeans(k, pixels, shape)
-    final_image = select_cluster_by_largest_contour(segmented, labels, k)
+    segmented_image, labels = kmeans(k, pixels, shape)
+    final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
     if final_image is None:
         results.append((file_name, ''))
         continue
-
     colored = modify_color(final_image)
-    recognized = recognize_number(colored)
-    results.append((file_name, recognized))
-
+    recognized_number = recognize_number(colored)
+    results.append((file_name, recognized_number))
     plt.imshow(colored)
-    plt.title(f"Angka: {recognized}")
+    plt.title(f"Angka dikenali: {recognized_number}")
     plt.axis("off")
     plt.show()
 
-# Simpan ke Excel
-df = pd.DataFrame(results, columns=["Image", "Recognized_Number"])
+df = pd.DataFrame(results, columns=['Image', 'Recognized_Number'])
 df.to_excel("hasil_segmentasi_pi.xlsx", index=False)
-print("Selesai. Hasil disimpan di hasil_segmentasi_pi.xlsx")
+print("Selesai. Disimpan ke hasil_segmentasi_pi.xlsx")
