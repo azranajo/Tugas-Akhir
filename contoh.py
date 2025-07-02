@@ -21,6 +21,12 @@ os.makedirs("data_capture", exist_ok=True)
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(main={"size": (320, 240)})
 picam2.configure(config)
+# Pengaturan otomatis brightness dan exposure
+picam2.set_controls({
+    "AeEnable": True,
+    "AwbEnable": True,
+    "ExposureValue": 0.0
+})
 picam2.start()
 sleep(2)
 
