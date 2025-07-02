@@ -96,22 +96,24 @@ def kmeans(k, pixel_values, shape):
     segmented_image = centers[labels]
     return segmented_image.reshape(shape), labels
 
-def select_cluster_by_largest_contour(segmented_image, labels, k):
-    max_area = -1
-    selected_cluster_image = None
+def select_cluster_by_digit_shape(segmented_image, labels, k):
+    best_cluster = None
+    best_score = 0
     for i in range(k):
         im = np.copy(segmented_image).reshape(-1, 3)
         im[labels != i] = [255, 255, 255]
         cluster_img = im.reshape(segmented_image.shape)
+
         gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        _, thresh = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
-            area = cv2.contourArea(max(contours, key=cv2.contourArea))
-            if area > max_area:
-                max_area = area
-                selected_cluster_image = cluster_img
-    return selected_cluster_image
+            total_area = sum(cv2.contourArea(cnt) for cnt in contours)
+            if total_area > best_score:
+                best_score = total_area
+                best_cluster = cluster_img
+
+    return best_cluster
 
 def modify_color(image, hex_color="#FF0000"):
     rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -161,7 +163,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     pixels = resized.reshape(-1, 3).astype(np.float32)
     k = 5
     segmented_image, labels = kmeans(k, pixels, shape)
-    final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
+    final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
     if final_image is None:
         results.append((file_name, ''))
         continue
