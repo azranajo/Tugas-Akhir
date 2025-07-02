@@ -183,7 +183,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         results.append((file_name, ''))
         continue
 
-    colored = modify_color(mask_cluster)
+    colored = modify_color(cluster_vis)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
 
