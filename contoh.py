@@ -176,7 +176,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
-    k = 3
+    k = 7
     segmented_image, labels = kmeans(k, pixels, shape)
 
         # --- VISUALISASI CLUSTER ---
@@ -196,7 +196,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     colored = modify_color(final_image, mask)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
-    
+
     plt.imshow(colored)
     plt.title(f"Angka dikenali: {recognized_number}")
     plt.axis("off")
