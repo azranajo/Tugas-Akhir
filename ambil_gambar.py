@@ -21,6 +21,10 @@ os.makedirs("data_capture", exist_ok=True)
 picam2 = Picamera2()
 config = picam2.create_preview_configuration(main={"size": (320, 240)})
 picam2.configure(config)
+
+# Mengaktifkan Autofokus
+picam2.set_controls({"AfMode": 3})  # Mode autofocus, 3 berarti Continuous Autofocus
+
 picam2.start()
 sleep(2)
 
@@ -184,12 +188,12 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         results.append((file_name, ''))
         continue
 
-    #colored = modify_color(final_image)
-    recognized_number = recognize_number(final_image)
+    colored = modify_color(final_image)
+    recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
 
     # Tampilkan hasil akhir
-    plt.imshow(final_image)
+    plt.imshow(colored)
     plt.title(f"Angka yang dikenali : {recognized_number}")
     plt.axis("off")
     plt.show()
