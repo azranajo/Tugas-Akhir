@@ -176,14 +176,14 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     segmented_image, labels = kmeans(k, pixels, shape)
 
         # --- VISUALISASI CLUSTER ---
-    for i in range(k):
-        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-        plt.figure()
-        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-        plt.title(f"Cluster {i}")
-        plt.axis("off")
-        plt.show()
+   # for i in range(k):
+    #    mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+     #   cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+      #  plt.figure()
+      #  plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+      #  plt.title(f"Cluster {i}")
+      #  plt.axis("off")
+      #  plt.show()
 
     best_clusters = select_cluster_by_digit_shape(segmented_image, labels, k)
     for cluster_img, recognized_number in best_clusters:
