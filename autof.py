@@ -4,9 +4,11 @@ import time
 # Membuat objek Picamera2
 picam2 = Picamera2()
 
-# Mengonfigurasi resolusi gambar (640x480)
-config = picam2.create_configuration([Picamera2.STILL])
-config['main']['size'] = (640, 480)  # Mengatur resolusi menjadi 640x480
+# Membuat konfigurasi dengan resolusi 640x480
+config = picam2.create_still_configuration()
+config["main"]["size"] = (640, 480)  # Resolusi gambar diatur menjadi 640x480
+
+# Mengonfigurasi kamera dengan pengaturan resolusi yang baru
 picam2.configure(config)
 
 # Menyalakan kamera
