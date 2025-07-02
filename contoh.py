@@ -72,7 +72,7 @@ def show_result_in_gui(image_rgb, result_text):
     result_win = tk.Toplevel()
     result_win.attributes('-fullscreen', True)
 
-    img_pil = Image.fromarray(image_rgb).resize((320, 240), Image.ANTIALIAS)
+    img_pil = Image.fromarray(image_rgb).resize((480, 240), Image.ANTIALIAS)
     img_tk = ImageTk.PhotoImage(img_pil)
 
     img_label = tk.Label(result_win, image=img_tk)
@@ -89,7 +89,7 @@ def show_result_in_gui(image_rgb, result_text):
 root = tk.Tk()
 root.attributes('-fullscreen', True)
 panel = tk.Label(root, width=480, height=320)
-panel.pack(pady=10)
+panel.pack()
 
 button_frame = tk.Frame(root)
 button_frame.pack(pady=20)
