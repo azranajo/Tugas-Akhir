@@ -164,25 +164,32 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     k = 4
     segmented_image, labels = kmeans(k, pixels, shape)
 
-    # --- VISUALISASI CLUSTER ---
-    for i in range(k):
-        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-        plt.figure()
-        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-        plt.title(f"Cluster {i}")
-        plt.axis("off")
-        plt.show()
-        
+    # --- VISUALISASI CLUSTER 3 --- 
+    cluster_yang_ditampilkan = 3  # Menentukan bahwa kita ingin fokus pada Cluster 3
+    mask_cluster = (labels == cluster_yang_ditampilkan).astype("uint8").reshape(shape[:2]) * 255
+    cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+
+    # Visualisasikan hanya Cluster 3
+    plt.figure()
+    plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+    plt.title(f"Cluster {cluster_yang_ditampilkan}")
+    plt.axis("off")
+    plt.show()
+
+    # Proses pengenalan untuk Cluster 3
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
+
     if final_image is None:
         results.append((file_name, ''))
         continue
+
     colored = modify_color(final_image)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
+
+    # Tampilkan hasil akhir untuk Cluster 3
     plt.imshow(colored)
-    plt.title(f"Angka dikenali: {recognized_number}")
+    plt.title(f"Angka dikenali (Cluster 3): {recognized_number}")
     plt.axis("off")
     plt.show()
 
