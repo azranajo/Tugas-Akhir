@@ -159,7 +159,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
-    k = 8
+    k = 9
     segmented_image, labels = kmeans(k, pixels, shape)
     final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
     if final_image is None:
