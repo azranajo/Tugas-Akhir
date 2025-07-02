@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import time
 from picamera2 import Picamera2
-from picamera2.export import Previews
 
 # Konfigurasi Tesseract di Raspberry
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
