@@ -174,9 +174,11 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     colored = modify_color(final_image)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
+    plt.figure(figsize=(2, 1.5))
     plt.imshow(colored)
-    plt.title(f"Angka dikenali: {recognized_number}")
+    plt.title(f"Angka dikenali: {recognized_number}", fontsize=10)
     plt.axis("off")
+    plt.tight_layout(pad=0.2)
     plt.show()
 
 df = pd.DataFrame(results, columns=['Image', 'Recognized_Number'])
