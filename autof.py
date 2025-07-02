@@ -14,5 +14,5 @@ picam2.set_controls({"AfMode": 1})  # Mode autofocus, 3: Continuous (terus-mener
 time.sleep(2)  # Tunggu 2 detik agar autofocus bisa menyesuaikan
 
 # Mengambil gambar
-picam2.capture_file("gambar_dengan_autofocus.jpg")
+picam2.capture_file("gambar_dengan_autofocus.jpeg")
 print("Gambar berhasil diambil!")
