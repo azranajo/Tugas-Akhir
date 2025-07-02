@@ -97,38 +97,26 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    best_cluster = None
-    best_mask = None
-    best_score = 0
-    for i in range(k):
-        im = np.copy(segmented_image).reshape(-1, 3)
-        im[labels != i] = [255, 255, 255]
-        cluster_img = im.reshape(segmented_image.shape)
+    target_cluster_index = 4  # ubah jika perlu
+    im = np.copy(segmented_image).reshape(-1, 3)
+    im[labels != target_cluster_index] = [255, 255, 255]
+    cluster_img = im.reshape(segmented_image.shape)
 
-        gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
-        _, thresh = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
+    _, thresh = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-        # Tambahkan morfologi untuk hilangkan noise kecil
-        kernel = np.ones((3, 3), np.uint8)
-        cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
+    kernel = np.ones((3, 3), np.uint8)
+    cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
 
-         # Filter berdasarkan ukuran kontur
-        contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        mask = np.zeros_like(thresh)
+    contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    mask = np.zeros_like(thresh)
 
-        for cnt in contours:
-            area = cv2.contourArea(cnt)
-            if area > 300:  # Hanya kontur besar dianggap bagian angka
-                cv2.drawContours(mask, [cnt], -1, 255, -1)
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 300:
+            cv2.drawContours(mask, [cnt], -1, 255, -1)
 
-        score = np.sum(mask == 255)
-        if score > best_score:
-            best_score = score
-            best_cluster = cluster_img
-            best_mask = mask
-
-    if best_cluster is not None and best_mask is not None:
-        return best_cluster, best_mask
+    return cluster_img, mask
 
 def modify_color(image, mask, hex_color="#FF0000"):
     rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
