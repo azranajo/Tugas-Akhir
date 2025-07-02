@@ -189,7 +189,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     results.append((file_name, recognized_number))
 
     # Tampilkan hasil akhir
-    plt.imshow(colored)
+    plt.imshow(final_image)
     plt.title(f"Angka yang dikenali : {recognized_number}")
     plt.axis("off")
     plt.show()
