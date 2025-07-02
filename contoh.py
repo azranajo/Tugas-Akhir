@@ -172,7 +172,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
-    k = 4
+    k = 7
     segmented_image, labels = kmeans(k, pixels, shape)
 
         # --- VISUALISASI CLUSTER ---
