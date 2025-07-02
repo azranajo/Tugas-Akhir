@@ -70,26 +70,30 @@ def exit_program():
 # Tampilkan hasil OCR di GUI
 def show_result_in_gui(image_rgb, result_text):
     result_win = tk.Toplevel()
-    result_win.attributes('-fullscreen', True)
+    result_win.geometry("480x320")  # Sesuai dengan resolusi LCD
+    result_win.overrideredirect(True)  # Hilangkan title bar agar fullscreen sempurna
+    #result_win.attributes('-fullscreen', True)
 
     img_pil = Image.fromarray(image_rgb).resize((480, 240), Image.ANTIALIAS)
     img_tk = ImageTk.PhotoImage(img_pil)
 
     img_label = tk.Label(result_win, image=img_tk)
     img_label.image = img_tk
-    img_label.pack(pady=10)
+    img_label.pack()
 
     text_label = tk.Label(result_win, text=f"Angka dikenali: {result_text}", font=("Arial", 20))
-    text_label.pack(pady=10)
+    text_label.pack()
 
     btn_ok = tk.Button(result_win, text="OK", font=("Arial", 16), command=result_win.destroy)
-    btn_ok.pack(pady=10)
+    btn_ok.pack()
 
 # Setup GUI
 root = tk.Tk()
-root.attributes('-fullscreen', True)
+root.geometry("480x320")
+root.overrideredirect(True)
+#root.attributes('-fullscreen', True)
 panel = tk.Label(root, width=480, height=320)
-panel.pack(pady=10)
+panel.pack()
 
 button_frame = tk.Frame(root)
 button_frame.pack(pady=20)
