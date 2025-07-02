@@ -15,11 +15,11 @@ picam2.configure(config)
 picam2.start()
 
 # Mengaktifkan autofocus (secara default sudah aktif, tetapi kamu bisa menyesuaikannya)
-picam2.set_controls({"AfMode": 1})  # Mode autofocus, 1: Single-shot
+picam2.set_controls({"AfMode": 3})  # Mode autofocus, 1: Single-shot
 
 # Menunggu autofocus untuk menyesuaikan
 time.sleep(2)  # Tunggu 2 detik agar autofocus bisa menyesuaikan
 
 # Mengambil gambar dan menyimpannya dengan resolusi yang lebih kecil
-picam2.capture_file("gambar_dengan_autofocus_kecil.jpeg")
+picam2.capture_file("gambar_dengan_autofocus_kecil.jpg")
 print("Gambar berhasil diambil dengan resolusi kecil!")
