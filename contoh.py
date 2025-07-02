@@ -97,7 +97,7 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    target_cluster_index = 4  # ubah jika perlu
+    target_cluster_index = 5  # ubah jika perlu
     im = np.copy(segmented_image).reshape(-1, 3)
     im[labels != target_cluster_index] = [255, 255, 255]
     cluster_img = im.reshape(segmented_image.shape)
