@@ -87,13 +87,17 @@ def show_result_in_gui(image_rgb, result_text):
     btn_ok = tk.Button(result_win, text="OK", font=("Arial", 16), command=result_win.destroy)
     btn_ok.pack()
 
+    separator = tk.Frame(root, height=2, width=480, bg="gray")
+    separator.place(x=0, y=240)
+
+
 # Setup GUI
 root = tk.Tk()
 root.geometry("480x320")
 root.overrideredirect(True)
 root.configure(bg="black")
 
-panel = tk.Label(root, width=480, height=320, bg="black")
+panel = tk.Label(root, width=480, height=240, bg="black")
 panel.place(x=0, y=0)
 
 # Tombol Capture dan Exit
