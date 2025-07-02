@@ -50,7 +50,7 @@ def update_frame():
 def capture_image():
     global frame_np, captured, capture_count, image_list
     captured = True
-    rgb = frame_np #cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
+    rgb = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB)
     img_pil = Image.fromarray(rgb)
     filename = f"captured_{capture_count}.jpg"
     img_pil.save(f"data_capture/{filename}")
