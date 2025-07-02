@@ -89,7 +89,7 @@ def show_result_in_gui(image_rgb, result_text):
 root = tk.Tk()
 root.attributes('-fullscreen', True)
 panel = tk.Label(root, width=480, height=320)
-panel.pack()
+panel.pack(pady=10)
 
 button_frame = tk.Frame(root)
 button_frame.pack(pady=20)
