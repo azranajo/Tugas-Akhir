@@ -97,7 +97,9 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    best_clusters = []  # Menyimpan cluster yang sesuai dengan angka
+    best_cluster = None
+    best_mask = None
+    best_score = 0
     for i in range(k):
         im = np.copy(segmented_image).reshape(-1, 3)
         im[labels != i] = [255, 255, 255]
@@ -110,7 +112,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         kernel = np.ones((3, 3), np.uint8)
         cleaned = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=1)
 
-        # Filter berdasarkan ukuran kontur
+         # Filter berdasarkan ukuran kontur
         contours, _ = cv2.findContours(cleaned, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         mask = np.zeros_like(thresh)
 
@@ -119,12 +121,14 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
             if area > 300:  # Hanya kontur besar dianggap bagian angka
                 cv2.drawContours(mask, [cnt], -1, 255, -1)
 
-        # Preprocessing OCR untuk mengenali angka
-        recognized_number = recognize_number(cluster_img)  # Gunakan OCR untuk mengenali angka
-        if recognized_number.isdigit():  # Pastikan hasilnya berupa angka
-            best_clusters.append((cluster_img, recognized_number))  # Simpan cluster dengan angka yang dikenali
+        score = np.sum(mask == 255)
+        if score > best_score:
+            best_score = score
+            best_cluster = cluster_img
+            best_mask = mask
 
-    return best_clusters
+    if best_cluster is not None and best_mask is not None:
+        return best_cluster, best_mask
 
 def modify_color(image, mask, hex_color="#FF0000"):
     rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -172,24 +176,28 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
-    k = 7
+    k = 5
     segmented_image, labels = kmeans(k, pixels, shape)
 
         # --- VISUALISASI CLUSTER ---
-   # for i in range(k):
-    #    mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-     #   cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-      #  plt.figure()
-      #  plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-      #  plt.title(f"Cluster {i}")
-      #  plt.axis("off")
-      #  plt.show()
+    for i in range(k):
+        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+        plt.figure()
+        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+        plt.title(f"Cluster {i}")
+        plt.axis("off")
+        plt.show()
 
-    best_clusters = select_cluster_by_digit_shape(segmented_image, labels, k)
-    for cluster_img, recognized_number in best_clusters:
-        results.append((file_name, recognized_number))
-
-    plt.imshow(cluster_img)
+    final_image, mask = select_cluster_by_digit_shape(segmented_image, labels, k)
+    if final_image is None:
+        results.append((file_name, ''))
+        continue
+    colored = modify_color(final_image, mask)
+    recognized_number = recognize_number(colored)
+    results.append((file_name, recognized_number))
+    
+    plt.imshow(colored)
     plt.title(f"Angka dikenali: {recognized_number}")
     plt.axis("off")
     plt.show()
