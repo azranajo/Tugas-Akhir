@@ -187,9 +187,9 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
 
-    # Tampilkan hasil akhir untuk Cluster 3
+    # Tampilkan hasil akhir
     plt.imshow(colored)
-    plt.title(f"Angka dikenali (Cluster 3): {recognized_number}")
+    plt.title(f"Angka yang dikenali : {recognized_number}")
     plt.axis("off")
     plt.show()
 

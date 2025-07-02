@@ -178,20 +178,19 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         plt.axis("off")
         plt.show()
 
-    # Proses pengenalan untuk Cluster 3
     final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
 
     if final_image is None:
         results.append((file_name, ''))
         continue
 
-    colored = modify_color(final_image)
-    recognized_number = recognize_number(colored)
+    #colored = modify_color(final_image)
+    recognized_number = recognize_number(final_image)
     results.append((file_name, recognized_number))
 
-    # Tampilkan hasil akhir untuk Cluster 3
+    # Tampilkan hasil akhir
     plt.imshow(colored)
-    plt.title(f"Angka dikenali (Cluster 3): {recognized_number}")
+    plt.title(f"Angka yang dikenali : {recognized_number}")
     plt.axis("off")
     plt.show()
 
