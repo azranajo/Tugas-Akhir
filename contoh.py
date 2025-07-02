@@ -67,6 +67,24 @@ def exit_program():
     root.destroy()
     print("Keluar tanpa mengambil gambar.")
 
+# Tampilkan hasil OCR di GUI
+def show_result_in_gui(image_rgb, result_text):
+    result_win = tk.Toplevel()
+    result_win.attributes('-fullscreen', True)
+
+    img_pil = Image.fromarray(image_rgb).resize((320, 240), Image.ANTIALIAS)
+    img_tk = ImageTk.PhotoImage(img_pil)
+
+    img_label = tk.Label(result_win, image=img_tk)
+    img_label.image = img_tk
+    img_label.pack(pady=10)
+
+    text_label = tk.Label(result_win, text=f"Angka dikenali: {result_text}", font=("Arial", 20))
+    text_label.pack(pady=10)
+
+    btn_ok = tk.Button(result_win, text="OK", font=("Arial", 16), command=result_win.destroy)
+    btn_ok.pack(pady=10)
+
 # Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
@@ -174,12 +192,13 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     colored = modify_color(final_image)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
-    plt.figure(figsize=(2, 1.5))
-    plt.imshow(colored)
-    plt.title(f"Angka dikenali: {recognized_number}", fontsize=10)
-    plt.axis("off")
-    plt.tight_layout(pad=0.2)
-    plt.show()
+    show_result_in_gui(colored, recognized)
+    #plt.figure(figsize=(2, 1.5))
+    #plt.imshow(colored)
+    #plt.title(f"Angka dikenali: {recognized_number}", fontsize=10)
+    #plt.axis("off")
+    #plt.tight_layout(pad=0.2)
+    #plt.show()
 
 df = pd.DataFrame(results, columns=['Image', 'Recognized_Number'])
 df.to_excel("hasil_segmentasi_pi.xlsx", index=False)
