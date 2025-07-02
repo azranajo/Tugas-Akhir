@@ -83,6 +83,8 @@ picam2.close()
 # Resize image
 def resize_image(image, max_width=320, max_height=240):
     h, w = image.shape[:2]
+    if h == 0 or w == 0:
+        raise ValueError("Ukuran gambar tidak valid (lebar atau tinggi = 0)")
     scale = min(max_width / w, max_height / h)
     if scale < 1:
         return cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
