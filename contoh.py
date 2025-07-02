@@ -91,18 +91,17 @@ def show_result_in_gui(image_rgb, result_text):
 root = tk.Tk()
 root.geometry("480x320")
 root.overrideredirect(True)
-#root.attributes('-fullscreen', True)
-panel = tk.Label(root, width=480, height=320)
-panel.pack()
+root.configure(bg="black")
 
-button_frame = tk.Frame(root)
-button_frame.pack(pady=20)
+panel = tk.Label(root, width=480, height=320, bg="black")
+panel.place(x=0, y=0)
 
-btn_capture = tk.Button(button_frame, text="Capture", font=("Arial", 20), bg="green", fg="white", command=capture_image)
-btn_capture.pack(side="left", padx=20)
+# Tombol Capture dan Exit
+btn_capture = tk.Button(root, text="Capture", font=("Arial", 16), bg="green", fg="white", command=capture_image, width=10, height=2)
+btn_capture.place(x=40, y=260)
 
-btn_exit = tk.Button(button_frame, text="Exit", font=("Arial", 20), bg="red", fg="white", command=exit_program)
-btn_exit.pack(side="left", padx=20)
+btn_exit = tk.Button(root, text="Exit", font=("Arial", 16), bg="red", fg="white", command=exit_program, width=10, height=2)
+btn_exit.place(x=260, y=260)
 
 # Jalankan preview
 threading.Thread(target=update_frame, daemon=True).start()
