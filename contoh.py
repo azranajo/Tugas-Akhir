@@ -178,6 +178,17 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     pixels = resized.reshape(-1, 3).astype(np.float32)
     k = 3
     segmented_image, labels = kmeans(k, pixels, shape)
+
+        # --- VISUALISASI CLUSTER ---
+    for i in range(k):
+        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+        plt.figure()
+        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+        plt.title(f"Cluster {i}")
+        plt.axis("off")
+        plt.show()
+
     final_image, mask = select_cluster_by_digit_shape(segmented_image, labels, k)
     if final_image is None:
         results.append((file_name, ''))
@@ -185,6 +196,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     colored = modify_color(final_image, mask)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
+    
     plt.imshow(colored)
     plt.title(f"Angka dikenali: {recognized_number}")
     plt.axis("off")
