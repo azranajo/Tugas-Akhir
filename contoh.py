@@ -19,7 +19,7 @@ os.makedirs("data_capture", exist_ok=True)
 
 # Inisialisasi Kamera V3 (Picamera2)
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(main={"size": (320, 240)})
+config = picam2.create_preview_configuration(main={"size": (480, 320)})
 picam2.configure(config)
 # Pengaturan otomatis brightness dan exposure
 picam2.set_controls({
@@ -70,7 +70,7 @@ def exit_program():
 # Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
-panel = tk.Label(root, width=320, height=240)
+panel = tk.Label(root, width=480, height=320)
 panel.pack(pady=10)
 
 button_frame = tk.Frame(root)
@@ -89,7 +89,7 @@ picam2.close()
 
 # ---------- PROSES SEGMENTASI & OCR ----------
 
-def resize_image(image, max_width=320, max_height=240):
+def resize_image(image, max_width=480, max_height=320):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     return cv2.resize(image, (int(w * scale), int(h * scale)))
