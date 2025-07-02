@@ -6,7 +6,7 @@ picam2 = Picamera2()
 
 # Membuat konfigurasi dengan resolusi yang lebih kecil (640x360)
 config = picam2.create_still_configuration()
-config["main"]["size"] = (640, 360)  # Mengatur resolusi menjadi 640x360
+config["main"]["size"] = (320, 240)  # Mengatur resolusi menjadi 640x360
 
 # Mengonfigurasi kamera dengan pengaturan resolusi yang baru
 picam2.configure(config)
@@ -15,7 +15,7 @@ picam2.configure(config)
 picam2.start()
 
 # Mengaktifkan autofocus
-picam2.set_controls({"AfMode": 3})  # Mode autofocus, 1: Single-shot
+picam2.set_controls({"AfMode": 1})  # Mode autofocus, 1: Single-shot
 
 # Menunggu autofocus untuk menyesuaikan
 time.sleep(2)  # Tunggu 2 detik agar autofocus bisa menyesuaikan
