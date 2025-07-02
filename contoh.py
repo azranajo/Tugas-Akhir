@@ -23,7 +23,7 @@ config = picam2.create_preview_configuration(main={"size": (320, 240)})
 picam2.configure(config)
 
 # Mengaktifkan Autofokus
-picam2.set_controls({"AfMode": 1})  # Mode autofocus, 3 berarti Continuous Autofocus
+picam2.set_controls({"AfMode": 2})  # Mode autofocus, 3 berarti Continuous Autofocus
 
 picam2.start()
 sleep(2)
