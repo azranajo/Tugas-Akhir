@@ -100,10 +100,19 @@ def kmeans(k, pixel_values, shape):
 def select_cluster_by_largest_contour(segmented_image, labels, k):
     max_area = -1
     selected_cluster_image = None
+    h, w = labels.shape
     for i in range(k):
-        im = np.copy(segmented_image).reshape(-1, 3)
-        im[labels != i] = [255, 255, 255]
-        cluster_img = im.reshape(segmented_image.shape)
+         # Buat copy segmented image
+        cluster_img = np.copy(segmented_image)
+        
+        # Buat mask 2D
+        mask = labels != i
+        
+        # Jadikan mask 3D agar cocok dengan RGB image
+        mask_3d = np.stack([mask] * 3, axis=-1)
+
+        # Ganti background non-cluster jadi putih
+        cluster_img[mask_3d] = [255, 255, 255]
         gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
         _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
