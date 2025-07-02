@@ -9,7 +9,7 @@ picam2.start()
 
 # Mengatur resolusi gambar menjadi 640x480 (VGA)
 picam2.set_controls({"AfMode": 3})  # Mode autofocus, 1: Single-shot
-picam2.set_controls({"Resolution": (640, 480)})  # Resolusi diubah menjadi 640x480
+picam2.set_controls({"Resolution": (480, 320)})  # Resolusi diubah menjadi 640x480
 
 # Menunggu autofocus untuk menyesuaikan
 time.sleep(2)  # Tunggu 2 detik agar autofocus bisa menyesuaikan
