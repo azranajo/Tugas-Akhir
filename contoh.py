@@ -103,18 +103,41 @@ def kmeans(k, pixel_values, shape):
 def select_cluster_by_digit_shape(segmented_image, labels, k):
     best_cluster = None
     best_score = 0
+
     for i in range(k):
+        # Buat salinan gambar dan putihkan area selain cluster i
         im = np.copy(segmented_image).reshape(-1, 3)
         im[labels != i] = [255, 255, 255]
         cluster_img = im.reshape(segmented_image.shape)
 
+        # Grayscale dan threshold
         gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
         _, thresh = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+        # Deteksi kontur
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
         if contours:
-            total_area = sum(cv2.contourArea(cnt) for cnt in contours)
-            if total_area > best_score:
-                best_score = total_area
+            largest_contour = max(contours, key=cv2.contourArea)
+            largest_area = cv2.contourArea(largest_contour)
+            num_contours = len(contours)
+
+            # Skor: area kontur terbesar dibagi jumlah kontur untuk penalti noise
+            score = largest_area / (num_contours + 1e-5)
+
+            # Visualisasi
+            debug_img = cluster_img.copy()
+            cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+
+            plt.figure()
+            plt.imshow(debug_img)
+            plt.title(f"Cluster {i} - Score: {score:.2f}")
+            plt.axis('off')
+            plt.show()
+
+            # Simpan cluster terbaik
+            if score > best_score:
+                best_score = score
                 best_cluster = cluster_img
 
     return best_cluster
