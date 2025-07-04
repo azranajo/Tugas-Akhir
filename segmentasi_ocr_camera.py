@@ -81,7 +81,7 @@ def capture_and_save_image():
             timestamp = time.strftime("%Y%m%d-%H%M%S")
             file_name = f"image_{timestamp}.jpg"
             save_path = os.path.join(DATA_DIR, file_name)
-            cv2.imwrite(save_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  # Simpan gambar sebagai file JPG
+            cv2.imwrite(save_path, cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))  # Simpan gambar sebagai file JPG
             print(f"[INFO] Gambar disimpan di: {save_path}")
             cv2.destroyAllWindows()  # Tutup jendela preview
             return save_path
