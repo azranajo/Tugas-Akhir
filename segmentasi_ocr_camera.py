@@ -127,6 +127,14 @@ for i in range(k):
 # Memilih cluster dengan kontur terbesar
 final_image, selected_cluster_index = select_cluster_by_largest_contour(segmented_image, labels, k)
 
+# Modifikasi warna hasil segmentasi
+def modify_color(image, hex_color="#FF0000"):
+    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2 ,4))
+    img = image.copy()
+    mask = (img != [255, 255, 255]).any(axis=2)
+    img[mask] = rgb
+    return img
+
 if final_image is None:
     results.append((image_path, ''))
 else:
