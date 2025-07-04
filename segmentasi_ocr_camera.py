@@ -12,7 +12,7 @@ import time
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
 # Direktori gambar
-DATA_DIR = "data_baru_camera"
+DATA_DIR = "data_baru"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)  # Membuat folder baru jika belum ada
 
@@ -71,14 +71,20 @@ def recognize_number(image):
 
 # Ambil gambar dari kamera dan simpan ke folder
 def capture_and_save_image():
-    print("[INFO] Mengambil gambar dari kamera...")
-    frame = picam2.capture_array()
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    file_name = f"image_{timestamp}.jpg"
-    save_path = os.path.join(DATA_DIR, file_name)
-    cv2.imwrite(save_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  # Simpan gambar sebagai file JPG
-    print(f"[INFO] Gambar disimpan di: {save_path}")
-    return save_path
+    print("[INFO] Menampilkan preview kamera, tekan 'q' untuk mengambil gambar...")
+    while True:
+        frame = picam2.capture_array()  # Ambil gambar dari kamera
+        cv2.imshow("Camera Preview", frame)  # Tampilkan gambar untuk preview
+        
+        # Jika pengguna menekan 'q', keluar dari preview dan simpan gambar
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            timestamp = time.strftime("%Y%m%d-%H%M%S")
+            file_name = f"image_{timestamp}.jpg"
+            save_path = os.path.join(DATA_DIR, file_name)
+            cv2.imwrite(save_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  # Simpan gambar sebagai file JPG
+            print(f"[INFO] Gambar disimpan di: {save_path}")
+            cv2.destroyAllWindows()  # Tutup jendela preview
+            return save_path
 
 # Proses utama
 results = []
