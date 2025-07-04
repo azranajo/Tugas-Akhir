@@ -100,7 +100,7 @@ image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 shape = image.shape
 pixels = image.reshape(-1, 3).astype(np.float32)
 
-k = 4
+k = 5
 segmented_image, labels = kmeans(k, pixels, shape)
 
 # Menampilkan visualisasi untuk setiap cluster
