@@ -46,6 +46,36 @@ def preprocess_image(image):
     
     return sharpened
 
+# Pilih cluster dengan kontur terbesar
+def select_cluster_by_largest_contour(segmented_image, labels, k):
+    max_area = -1
+    selected_cluster_image = None
+    selected_cluster_index = -1
+    for i in range(k):
+        im = np.copy(segmented_image).reshape(-1, 3)
+        im[labels != i] = [255, 255, 255]
+        cluster_img = im.reshape(segmented_image.shape)
+
+        gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
+        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        if contours:
+            area = cv2.contourArea(max(contours, key=cv2.contourArea))
+            if area > max_area:
+                max_area = area
+                selected_cluster_image = cluster_img
+                selected_cluster_index = i  # Menyimpan nomor cluster yang terpilih
+    return selected_cluster_image, selected_cluster_index
+
+# Fungsi OCR yang dimodifikasi untuk meningkatkan akurasi
+def recognize_number(image):
+    # Preprocessing gambar sebelum OCR
+    processed_image = preprocess_image(image)
+    _, thresh = cv2.threshold(processed_image, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
+    return text.strip()
+
 # Ambil gambar dari kamera dan simpan ke folder
 def capture_and_save_image():
     print("[INFO] Menampilkan preview kamera, tekan 'q' untuk mengambil gambar...")
@@ -63,14 +93,6 @@ def capture_and_save_image():
             cv2.destroyAllWindows()  # Tutup jendela preview
             return save_path
 
-# Fungsi OCR yang dimodifikasi untuk meningkatkan akurasi
-def recognize_number(image):
-    # Preprocessing gambar sebelum OCR
-    processed_image = preprocess_image(image)
-    _, thresh = cv2.threshold(processed_image, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
-    return text.strip()
-
 # Proses utama
 results = []
 
@@ -86,7 +108,7 @@ shape = image.shape
 pixels = image.reshape(-1, 3).astype(np.float32)
 
 # Cobalah dengan nilai k yang berbeda, misalnya k=5 atau k=10 untuk eksperimen
-k = 10  # Cobalah mengubah k menjadi 10
+k = 5  # Cobalah mengubah k menjadi 10
 segmented_image, labels = kmeans(k, pixels, shape)
 
 # Menampilkan visualisasi untuk setiap cluster
@@ -102,7 +124,8 @@ for i in range(k):
     plt.tight_layout()
     plt.show()
 
-final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
+# Memilih cluster dengan kontur terbesar
+final_image, selected_cluster_index = select_cluster_by_largest_contour(segmented_image, labels, k)
 
 if final_image is None:
     results.append((image_path, ''))
@@ -110,16 +133,16 @@ else:
     colored = modify_color(final_image)
     recognized_number = recognize_number(colored)
 
-    results.append((image_path, recognized_number))
+    results.append((image_path, recognized_number, selected_cluster_index))
 
     plt.subplot(1, 1, 1)
     plt.imshow(colored)
-    plt.title(f"Angka yang dikenali: {recognized_number}")
+    plt.title(f"Angka yang dikenali: {recognized_number} (Cluster {selected_cluster_index + 1})")
     plt.axis("off")
     plt.tight_layout()
     plt.show()
 
 # Simpan hasil ke Excel
-df = pd.DataFrame(results, columns=['Image', 'Recognized_Number'])
+df = pd.DataFrame(results, columns=['Image', 'Recognized_Number', 'Best_Cluster'])
 df.to_excel("hasil_segmentasi_pi.xlsx", index=False)
 print("Selesai! File hasil disimpan sebagai 'hasil_segmentasi_pi.xlsx'")
