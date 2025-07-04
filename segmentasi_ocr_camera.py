@@ -1,52 +1,22 @@
-from picamera2 import Picamera2
-import time
+import os
 import cv2
 import numpy as np
+import pandas as pd
+import pytesseract
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans
+from tqdm import tqdm
+from picamera2 import Picamera2
+import time
 
-def select_cluster_by_digit_shape(segmented_image, labels, k):
-    best_cluster = None
-    best_score = 0
+# Konfigurasi Tesseract di Raspberry
+pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
-    for i in range(k):
-        im = np.copy(segmented_image).reshape(-1, 3)
-        im[labels != i] = [255, 255, 255]  # Putihkan selain cluster ke-i
-        cluster_img = im.reshape(segmented_image.shape)
+# Direktori gambar
+DATA_DIR = "data_baru_camera"
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)  # Membuat folder baru jika belum ada
 
-        # Proses ke grayscale dan threshold
-        gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
-        _, thresh = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        if contours:
-            # Ambil kontur terbesar
-            largest_contour = max(contours, key=cv2.contourArea)
-            largest_area = cv2.contourArea(largest_contour)
-            num_contours = len(contours)
-
-            # Hitung skor: area terbesar dibagi jumlah kontur (untuk kurangi efek noise)
-            score = largest_area / (num_contours + 1e-5)
-
-            # Gambar kontur terbesar (untuk debugging visual)
-            debug_img = cluster_img.copy()
-            cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
-
-            # Tampilkan visualisasi
-            plt.figure()
-            plt.imshow(debug_img)
-            plt.title(f"Cluster {i} - Score: {score:.2f}")
-            plt.axis('off')
-            plt.show()
-
-            # Simpan cluster terbaik
-            if score > best_score:
-                best_score = score
-                best_cluster = cluster_img
-
-    return best_cluster
-
-# --- Inisialisasi Kamera ---
+# Inisialisasi Kamera Raspberry Pi
 print("[INFO] Menginisialisasi kamera...")
 picam2 = Picamera2()
 picam2.preview_configuration.main.size = (128, 128)  # Resolusi input model
@@ -55,24 +25,109 @@ picam2.configure("preview")
 picam2.start()
 time.sleep(1)  # Waktu buffer kamera
 
-# --- Ambil gambar dari kamera ---
-print("[INFO] Mengambil gambar dari kamera...")
-frame = picam2.capture_array()
+# Fungsi K-Means
+def kmeans(k, pixel_values, shape):
+    criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
+    _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
+    centers = np.uint8(centers)
+    labels = labels.flatten()
+    segmented_image = centers[labels]
+    return segmented_image.reshape(shape), labels
 
-# --- Segmentasi Gambar Menggunakan K-means (untuk membuat 'labels') ---
-k = 3  # Jumlah cluster yang diinginkan
-Z = frame.reshape((-1, 3))  # Ubah gambar menjadi array 2D
-kmeans = KMeans(n_clusters=k, random_state=0).fit(Z)
-labels = kmeans.labels_.reshape(frame.shape[:2])  # Ganti 'labels' dengan hasil K-means
-segmented_image = frame  # Gunakan gambar asli sebagai 'segmented_image' (atau Anda bisa memodifikasi ini)
+# Pilih cluster dengan kontur terbesar
+def select_cluster_by_largest_contour(segmented_image, labels, k):
+    max_area = -1
+    selected_cluster_image = None
+    for i in range(k):
+        im = np.copy(segmented_image).reshape(-1, 3)
+        im[labels != i] = [255, 255, 255]
+        cluster_img = im.reshape(segmented_image.shape)
 
-# Panggil fungsi untuk memilih cluster berdasarkan bentuk digit
-best_cluster = select_cluster_by_digit_shape(segmented_image, labels, k)
+        gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
+        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-# Tampilkan cluster terbaik jika ditemukan
-if best_cluster is not None:
-    cv2.imshow("Best Cluster", best_cluster)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        if contours:
+            area = cv2.contourArea(max(contours, key=cv2.contourArea))
+            if area > max_area:
+                max_area = area
+                selected_cluster_image = cluster_img
+    return selected_cluster_image
+
+# Modifikasi warna hasil segmentasi
+def modify_color(image, hex_color="#FF0000"):
+    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2 ,4))
+    img = image.copy()
+    mask = (img != [255, 255, 255]).any(axis=2)
+    img[mask] = rgb
+    return img
+
+# OCR fungsi
+def recognize_number(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
+    return text.strip()
+
+# Ambil gambar dari kamera dan simpan ke folder
+def capture_and_save_image():
+    print("[INFO] Mengambil gambar dari kamera...")
+    frame = picam2.capture_array()
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    file_name = f"image_{timestamp}.jpg"
+    save_path = os.path.join(DATA_DIR, file_name)
+    cv2.imwrite(save_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  # Simpan gambar sebagai file JPG
+    print(f"[INFO] Gambar disimpan di: {save_path}")
+    return save_path
+
+# Proses utama
+results = []
+
+# Ambil gambar pertama untuk percakapan
+image_path = capture_and_save_image()
+
+# Baca gambar yang disimpan
+image = cv2.imread(image_path)
+image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+# Proses K-Means dan OCR
+shape = image.shape
+pixels = image.reshape(-1, 3).astype(np.float32)
+
+k = 4
+segmented_image, labels = kmeans(k, pixels, shape)
+
+# Menampilkan visualisasi untuk setiap cluster
+for i in range(k):
+    cluster_image = np.copy(segmented_image).reshape(-1, 3)
+    cluster_image[labels != i] = [255, 255, 255]
+    cluster_image = cluster_image.reshape(segmented_image.shape)
+
+    plt.figure(figsize=(4, 4))
+    plt.imshow(cluster_image)
+    plt.title(f"Cluster {i + 1}")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
+
+if final_image is None:
+    results.append((image_path, ''))
 else:
-    print("[INFO] Tidak ada cluster yang ditemukan.")
+    colored = modify_color(final_image)
+    recognized_number = recognize_number(colored)
+
+    results.append((image_path, recognized_number))
+
+    plt.subplot(1, 1, 1)
+    plt.imshow(colored)
+    plt.title(f"Angka yang dikenali: {recognized_number}")
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
+# Simpan hasil ke Excel
+df = pd.DataFrame(results, columns=['Image', 'Recognized_Number'])
+df.to_excel("hasil_segmentasi_pi.xlsx", index=False)
+print("Selesai! File hasil disimpan sebagai 'hasil_segmentasi_pi.xlsx'")
