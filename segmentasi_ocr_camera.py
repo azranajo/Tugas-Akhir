@@ -19,7 +19,7 @@ if not os.path.exists(DATA_DIR):
 # Inisialisasi Kamera Raspberry Pi
 print("[INFO] Menginisialisasi kamera...")
 picam2 = Picamera2()
-picam2.preview_configuration.main.size = (128, 100)  # Resolusi input model
+picam2.preview_configuration.main.size = (128, 150)  # Resolusi input model
 picam2.preview_configuration.main.format = "RGB888"
 picam2.configure("preview")
 picam2.start()
