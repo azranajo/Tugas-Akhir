@@ -3,6 +3,7 @@ import time
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
     best_cluster = None
@@ -58,13 +59,12 @@ time.sleep(1)  # Waktu buffer kamera
 print("[INFO] Mengambil gambar dari kamera...")
 frame = picam2.capture_array()
 
-# Misalnya, segmented_image dan labels adalah hasil dari beberapa proses klastering atau segmentasi gambar
-# Gantilah kode di bawah dengan gambar yang telah diproses sebelumnya (contoh di sini menggunakan frame kamera)
-segmented_image = frame  # Ganti ini dengan gambar hasil segmentasi
-labels = np.zeros(segmented_image.shape[:2], dtype=int)  # Dummy labels, ganti sesuai kebutuhan
-
-# Jumlah klaster yang ingin diproses (k)
-k = 3  # Gantilah dengan jumlah klaster yang Anda inginkan
+# --- Segmentasi Gambar Menggunakan K-means (untuk membuat 'labels') ---
+k = 3  # Jumlah cluster yang diinginkan
+Z = frame.reshape((-1, 3))  # Ubah gambar menjadi array 2D
+kmeans = KMeans(n_clusters=k, random_state=0).fit(Z)
+labels = kmeans.labels_.reshape(frame.shape[:2])  # Ganti 'labels' dengan hasil K-means
+segmented_image = frame  # Gunakan gambar asli sebagai 'segmented_image' (atau Anda bisa memodifikasi ini)
 
 # Panggil fungsi untuk memilih cluster berdasarkan bentuk digit
 best_cluster = select_cluster_by_digit_shape(segmented_image, labels, k)
