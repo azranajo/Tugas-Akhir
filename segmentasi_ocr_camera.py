@@ -64,7 +64,6 @@ def select_cluster_by_readable(segmented_image, labels, k):
         # Coba OCR pada cluster ini
         recognized_text = recognize_number(cluster_img)
         if recognized_text:  # Jika teks dikenali
-            cluster_img=colored(cluster_img)
             return cluster_img, i  # Kembalikan gambar cluster dan index-nya
     return None, None  # Tidak ada cluster yang dikenali, kembalikan None
 
