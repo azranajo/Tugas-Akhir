@@ -92,6 +92,22 @@ def resize_image(image, max_width=320, max_height=240):
     scale = min(max_width / w, max_height / h)
     return cv2.resize(image, (int(w * scale), int(h * scale)))
 
+def detect_circle_and_crop(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    blurred = cv2.medianBlur(gray, 5)
+    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
+                               param1=50, param2=30, minRadius=50, maxRadius=140)
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        x, y, r = circles[0][0]
+        mask = np.zeros_like(gray)
+        cv2.circle(mask, (x, y), r, 255, -1)
+        masked = cv2.bitwise_and(image, image, mask=mask)
+        x1, y1 = max(x - r, 0), max(y - r, 0)
+        x2, y2 = x + r, y + r
+        return masked[y1:y2, x1:x2]
+    return None
+
 def kmeans(k, pixel_values, shape):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
     _, labels, centers = cv2.kmeans(pixel_values, k, None, criteria, 10, cv2.KMEANS_PP_CENTERS)
@@ -110,6 +126,9 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
 
         gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
         _, thresh = cv2.threshold(gray, 250, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        
+        mask = detect_circle_and_crop(gray)
+        thresh = cv2.bitwise_and(thresh, thresh, mask=mask)
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if contours:
             total_area = sum(cv2.contourArea(cnt) for cnt in contours)
@@ -139,21 +158,6 @@ def recognize_number(image):
     text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
-def detect_circle_and_crop(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.medianBlur(gray, 5)
-    circles = cv2.HoughCircles(blurred, cv2.HOUGH_GRADIENT, dp=1.2, minDist=100,
-                               param1=50, param2=30, minRadius=50, maxRadius=140)
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        x, y, r = circles[0][0]
-        mask = np.zeros_like(gray)
-        cv2.circle(mask, (x, y), r, 255, -1)
-        masked = cv2.bitwise_and(image, image, mask=mask)
-        x1, y1 = max(x - r, 0), max(y - r, 0)
-        x2, y2 = x + r, y + r
-        return masked[y1:y2, x1:x2]
-    return None
 
 # Jalankan segmentasi & OCR
 results = []
