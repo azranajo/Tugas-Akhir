@@ -101,6 +101,9 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
+    contour_thresh = 200
+    min_solidity = 0.5
+    debug = True
     def circular_mask(image):
         h, w = image.shape[:2]
         center = (w // 2, h // 2)
