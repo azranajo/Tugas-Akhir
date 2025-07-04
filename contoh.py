@@ -131,10 +131,24 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         if not contours:
             continue
 
+        # Skip cluster dengan terlalu banyak kontur (noise)
+        if len(contours) > contour_thresh:
+            if debug:
+                print(f"Cluster {i} diskip karena terlalu banyak kontur: {len(contours)}")
+            continue
+
         # Ambil kontur terbesar
         largest_contour = max(contours, key=cv2.contourArea)
         largest_area = cv2.contourArea(largest_contour)
-        num_contours = len(contours)
+
+        # Solidity (kerapatan)
+        hull = cv2.convexHull(largest_contour)
+        hull_area = cv2.contourArea(hull)
+        solidity = largest_area / (hull_area + 1e-5)
+        if solidity < min_solidity:
+            if debug:
+                print(f"Cluster {i} diskip karena solidity rendah: {solidity:.2f}")
+            continue
 
         # Hitung centroid (posisi tengah kontur)
         M = cv2.moments(largest_contour)
@@ -144,21 +158,25 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         cy = int(M["m01"] / M["m00"])
 
         h, w = gray.shape
+
         # Validasi posisi angka ada di tengah gambar
         if not (w * 0.25 < cx < w * 0.75 and h * 0.25 < cy < h * 0.75):
+            if debug:
+                print(f"Cluster {i} diskip karena centroid di pinggir: ({cx}, {cy})")
             continue  # Skip cluster jika kontur utama terlalu di pinggir
 
         # Skor akhir (angka besar, noise kecil)
-        score = largest_area / (num_contours + 1e-5)
+        score = largest_area / (len(contours) + 1e-5)
 
         # Visualisasi debugging
-        debug_img = cluster_img.copy()
-        cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
-        plt.figure()
-        plt.imshow(debug_img)
-        plt.title(f"Cluster {i} - Score: {score:.2f} | cx={cx}, cy={cy}")
-        plt.axis('off')
-        plt.show()
+        if debug:
+            debug_img = cluster_img.copy()
+            cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+            plt.figure()
+            plt.imshow(debug_img)
+            plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
+            plt.axis('off')
+            plt.show()
 
         # Simpan jika lebih baik dari sebelumnya
         if score > best_score:
