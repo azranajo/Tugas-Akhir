@@ -34,40 +34,17 @@ def kmeans(k, pixel_values, shape):
     segmented_image = centers[labels]
     return segmented_image.reshape(shape), labels
 
-# Pilih cluster dengan kontur terbesar
-def select_cluster_by_largest_contour(segmented_image, labels, k):
-    max_area = -1
-    selected_cluster_image = None
-    for i in range(k):
-        im = np.copy(segmented_image).reshape(-1, 3)
-        im[labels != i] = [255, 255, 255]
-        cluster_img = im.reshape(segmented_image.shape)
-
-        gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        if contours:
-            area = cv2.contourArea(max(contours, key=cv2.contourArea))
-            if area > max_area:
-                max_area = area
-                selected_cluster_image = cluster_img
-    return selected_cluster_image
-
-# Modifikasi warna hasil segmentasi
-def modify_color(image, hex_color="#FF0000"):
-    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2 ,4))
-    img = image.copy()
-    mask = (img != [255, 255, 255]).any(axis=2)
-    img[mask] = rgb
-    return img
-
-# OCR fungsi
-def recognize_number(image):
+# Preprocessing Gambar untuk meningkatkan kontras dan ketajaman
+def preprocess_image(image):
+    # Menambah kontras gambar dengan histogram equalization
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    _, thresh = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
-    return text.strip()
+    equalized = cv2.equalizeHist(gray)
+    
+    # Menggunakan filter sharpen untuk penajaman
+    kernel = np.array([[0, -1, 0], [-1, 5,-1], [0, -1, 0]])
+    sharpened = cv2.filter2D(equalized, -1, kernel)
+    
+    return sharpened
 
 # Ambil gambar dari kamera dan simpan ke folder
 def capture_and_save_image():
@@ -86,6 +63,14 @@ def capture_and_save_image():
             cv2.destroyAllWindows()  # Tutup jendela preview
             return save_path
 
+# Fungsi OCR yang dimodifikasi untuk meningkatkan akurasi
+def recognize_number(image):
+    # Preprocessing gambar sebelum OCR
+    processed_image = preprocess_image(image)
+    _, thresh = cv2.threshold(processed_image, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
+    return text.strip()
+
 # Proses utama
 results = []
 
@@ -100,7 +85,8 @@ image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 shape = image.shape
 pixels = image.reshape(-1, 3).astype(np.float32)
 
-k = 7
+# Cobalah dengan nilai k yang berbeda, misalnya k=5 atau k=10 untuk eksperimen
+k = 10  # Cobalah mengubah k menjadi 10
 segmented_image, labels = kmeans(k, pixels, shape)
 
 # Menampilkan visualisasi untuk setiap cluster
