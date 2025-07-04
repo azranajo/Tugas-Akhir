@@ -46,7 +46,29 @@ def preprocess_image(image):
     
     return sharpened
 
-# Pilih cluster dengan jumlah piksel terbanyak
+# Fungsi OCR untuk mengenali angka
+def recognize_number(image):
+    # Preprocessing gambar sebelum OCR
+    processed_image = preprocess_image(image)
+    _, thresh = cv2.threshold(processed_image, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
+    return text.strip()
+
+# Pilih cluster berdasarkan hasil OCR
+def select_cluster_by_readable(segmented_image, labels, k):
+    for i in range(k):
+        im = np.copy(segmented_image).reshape(-1, 3)
+        im[labels != i] = [255, 255, 255]
+        cluster_img = im.reshape(segmented_image.shape)
+
+        # Coba OCR pada cluster ini
+        recognized_text = recognize_number(cluster_img)
+        if recognized_text:  # Jika teks dikenali
+            cluster_img=colored(cluster_img)
+            return cluster_img, i  # Kembalikan gambar cluster dan index-nya
+    return None, None  # Tidak ada cluster yang dikenali, kembalikan None
+
+# Pilih cluster dengan kontur terbesar jika OCR gagal
 def select_cluster_by_largest_size(segmented_image, labels, k):
     max_size = -1
     selected_cluster_image = None
@@ -63,14 +85,6 @@ def select_cluster_by_largest_size(segmented_image, labels, k):
             selected_cluster_image = cluster_img
             selected_cluster_index = i  # Menyimpan nomor cluster yang terpilih
     return selected_cluster_image, selected_cluster_index
-
-# Fungsi OCR yang dimodifikasi untuk meningkatkan akurasi
-def recognize_number(image):
-    # Preprocessing gambar sebelum OCR
-    processed_image = preprocess_image(image)
-    _, thresh = cv2.threshold(processed_image, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
-    return text.strip()
 
 # Ambil gambar dari kamera dan simpan ke folder
 def capture_and_save_image():
@@ -104,7 +118,7 @@ shape = image.shape
 pixels = image.reshape(-1, 3).astype(np.float32)
 
 # Cobalah dengan nilai k yang berbeda, misalnya k=5 atau k=10 untuk eksperimen
-k = 5  # Cobalah mengubah k menjadi 10
+k = 10  # Cobalah mengubah k menjadi 10
 segmented_image, labels = kmeans(k, pixels, shape)
 
 # Menampilkan visualisasi untuk setiap cluster
@@ -120,15 +134,21 @@ for i in range(k):
     plt.tight_layout()
     plt.show()
 
-# Memilih cluster dengan jumlah piksel terbanyak
-final_image, selected_cluster_index = select_cluster_by_largest_size(segmented_image, labels, k)
-
 def modify_color(image, hex_color="#FF0000"):
     rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
     img = image.copy()
     mask = (img != [255, 255, 255]).any(axis=2)
     img[mask] = rgb
     return img
+
+
+# Pilih cluster berdasarkan apakah dapat terbaca oleh OCR
+final_image, selected_cluster_index = select_cluster_by_readable(segmented_image, labels, k)
+
+
+# Jika tidak ada yang terbaca oleh OCR, pilih berdasarkan kontur terbesar
+if final_image is None:
+    final_image, selected_cluster_index = select_cluster_by_largest_size(segmented_image, labels, k)
 
 if final_image is None:
     results.append((image_path, ''))
