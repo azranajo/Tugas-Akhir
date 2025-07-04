@@ -154,16 +154,14 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
             continue
 
         # Hitung centroid (posisi tengah kontur)
-        M = cv2.moments(largest_contour)
-        if M["m00"] == 0:
-            continue
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
+        x, y, w_box, h_box = cv2.boundingRect(largest_contour)
+        bbox_cx = x + w_box // 2
+        bbox_cy = y + h_box // 2
 
         h, w = gray.shape
 
         # Validasi posisi angka ada di tengah gambar
-        if not (w * 0.25 < cx < w * 0.75 and h * 0.25 < cy < h * 0.75):
+        if not (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85):
             if debug:
                 print(f"Cluster {i} diskip karena centroid di pinggir: ({cx}, {cy})")
             continue  # Skip cluster jika kontur utama terlalu di pinggir
