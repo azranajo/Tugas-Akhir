@@ -12,7 +12,7 @@ import time
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
 # Direktori gambar
-DATA_DIR = "data_baru"
+DATA_DIR = "data_baru_camera"
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)  # Membuat folder baru jika belum ada
 
