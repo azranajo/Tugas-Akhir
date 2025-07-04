@@ -19,7 +19,7 @@ if not os.path.exists(DATA_DIR):
 # Inisialisasi Kamera Raspberry Pi
 print("[INFO] Menginisialisasi kamera...")
 picam2 = Picamera2()
-picam2.preview_configuration.main.size = (256, 256)  # Resolusi input model
+picam2.preview_configuration.main.size = (128, 128)  # Resolusi input model
 picam2.preview_configuration.main.format = "RGB888"
 picam2.configure("preview")
 picam2.start()
@@ -46,9 +46,9 @@ def preprocess_image(image):
     
     return sharpened
 
-# Pilih cluster dengan kontur terbesar
-def select_cluster_by_largest_contour(segmented_image, labels, k):
-    max_area = -1
+# Pilih cluster dengan jumlah piksel terbanyak
+def select_cluster_by_largest_size(segmented_image, labels, k):
+    max_size = -1
     selected_cluster_image = None
     selected_cluster_index = -1
     for i in range(k):
@@ -56,16 +56,12 @@ def select_cluster_by_largest_contour(segmented_image, labels, k):
         im[labels != i] = [255, 255, 255]
         cluster_img = im.reshape(segmented_image.shape)
 
-        gray = cv2.cvtColor(cluster_img, cv2.COLOR_RGB2GRAY)
-        _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        if contours:
-            area = cv2.contourArea(max(contours, key=cv2.contourArea))
-            if area > max_area:
-                max_area = area
-                selected_cluster_image = cluster_img
-                selected_cluster_index = i  # Menyimpan nomor cluster yang terpilih
+        # Menghitung jumlah piksel dalam cluster
+        size = np.sum(labels == i)
+        if size > max_size:
+            max_size = size
+            selected_cluster_image = cluster_img
+            selected_cluster_index = i  # Menyimpan nomor cluster yang terpilih
     return selected_cluster_image, selected_cluster_index
 
 # Fungsi OCR yang dimodifikasi untuk meningkatkan akurasi
@@ -124,12 +120,11 @@ for i in range(k):
     plt.tight_layout()
     plt.show()
 
-# Memilih cluster dengan kontur terbesar
-final_image, selected_cluster_index = select_cluster_by_largest_contour(segmented_image, labels, k)
+# Memilih cluster dengan jumlah piksel terbanyak
+final_image, selected_cluster_index = select_cluster_by_largest_size(segmented_image, labels, k)
 
-# Modifikasi warna hasil segmentasi
 def modify_color(image, hex_color="#FF0000"):
-    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2 ,4))
+    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
     img = image.copy()
     mask = (img != [255, 255, 255]).any(axis=2)
     img[mask] = rgb
