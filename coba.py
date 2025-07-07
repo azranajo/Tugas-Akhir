@@ -254,6 +254,9 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     for i in range(k):
         mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
         cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
+        cluster_vis[black_pixels] = [255, 255, 255]
+        
         plt.figure()
         plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
         plt.title(f"Cluster {i}")
