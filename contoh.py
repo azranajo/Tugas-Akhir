@@ -163,7 +163,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         # Validasi posisi angka ada di tengah gambar
         if not (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85):
             if debug:
-                print(f"Cluster {i} diskip karena centroid di pinggir: ({cx}, {cy})")
+                print(f"Cluster {i} diskip karena centroid di pinggir: ({bbox_cx}, {bbox_cy})")
             continue  # Skip cluster jika kontur utama terlalu di pinggir
 
         # Skor akhir (angka besar, noise kecil)
@@ -202,9 +202,12 @@ def preprocess_for_ocr(image):
     return closed
 
 def recognize_number(image):
-    preprocessed = preprocess_for_ocr(image)
-    text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
-    return text.strip()
+    try:
+        preprocessed = preprocess_for_ocr(image)
+        text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
+        return text.strip()
+    except Exception as e:
+        return f"OCR Error: {str(e)}"
 
 def detect_circle_and_crop(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)

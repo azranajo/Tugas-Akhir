@@ -163,7 +163,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         # Validasi posisi angka ada di tengah gambar
         if not (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85):
             if debug:
-                print(f"Cluster {i} diskip karena centroid di pinggir: ({cx}, {cy})")
+                print(f"Cluster {i} diskip karena centroid di pinggir: ({bbox_cx}, {bbox_cy})")
             continue  # Skip cluster jika kontur utama terlalu di pinggir
 
         # Skor akhir (angka besar, noise kecil)
