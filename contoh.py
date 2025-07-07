@@ -39,7 +39,7 @@ def update_frame():
     global frame_np, panel, captured
     while not captured:
         frame_np = picam2.capture_array()
-        rgb_image = cv2.cvtColor(frame_np, cv2.COLOR_BGR2RGB) 
+        rgb_image = frame_np 
         image_pil = Image.fromarray(rgb_image)
         image_tk = ImageTk.PhotoImage(image_pil)
         panel.config(image=image_tk)
