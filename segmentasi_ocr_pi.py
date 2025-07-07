@@ -5,25 +5,16 @@ import pandas as pd
 import pytesseract
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from picamera2 import Picamera2
-import time
 
 # Konfigurasi Tesseract di Raspberry
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
 
 # Direktori gambar
-DATA_DIR = "data_baru_kamera"
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)  # Membuat folder baru jika belum ada
+DATA_DIR = "data_baru"
+image_files = sorted([f for f in os.listdir(DATA_DIR) if f.endswith(".png") or f.endswith(".jpg")])
 
-# Inisialisasi Kamera Raspberry Pi
-print("[INFO] Menginisialisasi kamera...")
-picam2 = Picamera2()
-picam2.preview_configuration.main.size = (128, 128)  # Resolusi input model
-picam2.preview_configuration.main.format = "RGB888"
-picam2.configure("preview")
-picam2.start()
-time.sleep(1)  # Waktu buffer kamera
+# Gunakan subset kecil untuk Raspberry
+image_files = image_files[:10]
 
 # Fungsi K-Means
 def kmeans(k, pixel_values, shape):
@@ -69,56 +60,43 @@ def recognize_number(image):
     text = pytesseract.image_to_string(thresh, config='--psm 8 -c tessedit_char_whitelist=0123456789')
     return text.strip()
 
-# Ambil gambar dari kamera dan simpan ke folder
-def capture_and_save_image():
-    print("[INFO] Mengambil gambar dari kamera...")
-    frame = picam2.capture_array()
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
-    file_name = f"image_{timestamp}.jpg"
-    save_path = os.path.join(DATA_DIR, file_name)
-    cv2.imwrite(save_path, cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))  # Simpan gambar sebagai file JPG
-    print(f"[INFO] Gambar disimpan di: {save_path}")
-    return save_path
-
 # Proses utama
 results = []
 
-# Ambil gambar pertama untuk percakapan
-image_path = capture_and_save_image()
+for idx, file_name in enumerate(tqdm(image_files, desc="Processing")):
+    path = os.path.join(DATA_DIR, file_name)
+    image = cv2.imread(path)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-# Baca gambar yang disimpan
-image = cv2.imread(image_path)
-image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    shape = image.shape
+    pixels = image.reshape(-1, 3).astype(np.float32)
 
-# Proses K-Means dan OCR
-shape = image.shape
-pixels = image.reshape(-1, 3).astype(np.float32)
+    k = 4
+    segmented_image, labels = kmeans(k, pixels, shape)
 
-k = 4
-segmented_image, labels = kmeans(k, pixels, shape)
+    # Menampilkan visualisasi untuk setiap cluster
+    for i in range(k):
+        cluster_image = np.copy(segmented_image).reshape(-1, 3)
+        cluster_image[labels != i] = [255, 255, 255]
+        cluster_image = cluster_image.reshape(segmented_image.shape)
 
-# Menampilkan visualisasi untuk setiap cluster
-for i in range(k):
-    cluster_image = np.copy(segmented_image).reshape(-1, 3)
-    cluster_image[labels != i] = [255, 255, 255]
-    cluster_image = cluster_image.reshape(segmented_image.shape)
+        plt.figure(figsize=(4, 4))
+        plt.imshow(cluster_image)
+        plt.title(f"Cluster {i + 1}")
+        plt.axis("off")
+        plt.tight_layout()
+        plt.show()
+    
+    final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
 
-    plt.figure(figsize=(4, 4))
-    plt.imshow(cluster_image)
-    plt.title(f"Cluster {i + 1}")
-    plt.axis("off")
-    plt.tight_layout()
-    plt.show()
+    if final_image is None:
+        results.append((file_name, ''))
+        continue
 
-final_image = select_cluster_by_largest_contour(segmented_image, labels, k)
-
-if final_image is None:
-    results.append((image_path, ''))
-else:
     colored = modify_color(final_image)
     recognized_number = recognize_number(colored)
 
-    results.append((image_path, recognized_number))
+    results.append((file_name, recognized_number))
 
     plt.subplot(1, 1, 1)
     plt.imshow(colored)
