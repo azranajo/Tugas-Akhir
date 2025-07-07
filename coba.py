@@ -254,9 +254,12 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     for i in range(k):
         mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
         cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
-        cluster_vis[black_pixels] = [255, 255, 255]
-        
+        # Buat latar putih
+        white_bg = np.ones_like(cluster_vis, dtype=np.uint8) * 255
+
+        # Gabungkan: jika mask 0 (latar), ambil putih; jika mask 255, ambil dari cluster_vis
+        cluster_output = np.where(mask_cluster[..., None] == 255, cluster_vis, white_bg)
+
         plt.figure()
         plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
         plt.title(f"Cluster {i}")
