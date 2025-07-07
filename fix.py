@@ -101,7 +101,7 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    contour_thresh = 500
+    contour_thresh = 370
     min_solidity = 0.2
     debug = True
     def circular_mask(image):
@@ -153,7 +153,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
                 print(f"Cluster {i} diskip karena solidity rendah: {solidity:.2f}")
             continue
 
-        # Hitung centroid (posisi tengah kontur)
+        # Bounding box center 
         x, y, w_box, h_box = cv2.boundingRect(largest_contour)
         bbox_cx = x + w_box // 2
         bbox_cy = y + h_box // 2
@@ -202,9 +202,12 @@ def preprocess_for_ocr(image):
     return closed
 
 def recognize_number(image):
-    preprocessed = preprocess_for_ocr(image)
-    text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
-    return text.strip()
+    try:
+        preprocessed = preprocess_for_ocr(image)
+        text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
+        return text.strip()
+    except Exception as e:
+        return f"OCR Error: {str(e)}"
 
 def detect_circle_and_crop(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -232,7 +235,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
-    k = 8
+    k = 9
     segmented_image, labels = kmeans(k, pixels, shape)
 
     # --- VISUALISASI CLUSTER ---

@@ -101,7 +101,7 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    contour_thresh = 500
+    contour_thresh = 370
     min_solidity = 0.2
     debug = True
     def circular_mask(image):
@@ -153,18 +153,28 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
                 print(f"Cluster {i} diskip karena solidity rendah: {solidity:.2f}")
             continue
 
-        # Hitung centroid (posisi tengah kontur)
+        # Bounding box center 
         x, y, w_box, h_box = cv2.boundingRect(largest_contour)
         bbox_cx = x + w_box // 2
         bbox_cy = y + h_box // 2
 
+        # Centroid dari kontur
+        M = cv2.moments(largest_contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+        else:
+            cx, cy = -1, -1
+
         h, w = gray.shape
 
-        # Validasi posisi angka ada di tengah gambar
-        if not (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85):
+        # Gabungan validasi posisi: centroid ATAU bbox center harus di tengah
+        centroid_ok = (w * 0.15 < cx < w * 0.85 and h * 0.15 < cy < h * 0.85)
+        bbox_ok = (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85)
+        if not (centroid_ok or bbox_ok):
             if debug:
-                print(f"Cluster {i} diskip karena centroid di pinggir: ({bbox_cx}, {bbox_cy})")
-            continue  # Skip cluster jika kontur utama terlalu di pinggir
+                print(f"Cluster {i} diskip karena posisi pusat di pinggir. Centroid: ({cx},{cy}), BBox: ({bbox_cx},{bbox_cy})")
+            continue
 
         # Skor akhir (angka besar, noise kecil)
         score = largest_area / (len(contours) + 1e-5)
@@ -173,9 +183,11 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         if debug:
             debug_img = cluster_img.copy()
             cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+            cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
+            cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 255, 0), -1)  # bbox biru muda
             plt.figure()
             plt.imshow(debug_img)
-            plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
+            plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Cnt: {len(contours)}")
             plt.axis('off')
             plt.show()
 
