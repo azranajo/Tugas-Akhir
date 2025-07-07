@@ -101,7 +101,7 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    contour_thresh = 370
+    contour_thresh = 340
     min_solidity = 0.2
     debug = True
     def circular_mask(image):
@@ -158,13 +158,23 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         bbox_cx = x + w_box // 2
         bbox_cy = y + h_box // 2
 
+        # Centroid dari kontur
+        M = cv2.moments(largest_contour)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+        else:
+            cx, cy = -1, -1
+
         h, w = gray.shape
 
-        # Validasi posisi angka ada di tengah gambar
-        if not (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85):
+        # Gabungan validasi posisi: centroid ATAU bbox center harus di tengah
+        centroid_ok = (w * 0.15 < cx < w * 0.85 and h * 0.15 < cy < h * 0.85)
+        bbox_ok = (w * 0.15 < bbox_cx < w * 0.85 and h * 0.15 < bbox_cy < h * 0.85)
+        if not (centroid_ok or bbox_ok):
             if debug:
-                print(f"Cluster {i} diskip karena centroid di pinggir: ({bbox_cx}, {bbox_cy})")
-            continue  # Skip cluster jika kontur utama terlalu di pinggir
+                print(f"Cluster {i} diskip karena posisi pusat di pinggir. Centroid: ({cx},{cy}), BBox: ({bbox_cx},{bbox_cy})")
+            continue
 
         # Skor akhir (angka besar, noise kecil)
         score = largest_area / (len(contours) + 1e-5)
@@ -173,6 +183,8 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         if debug:
             debug_img = cluster_img.copy()
             cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+            cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
+            cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
             plt.figure()
             plt.imshow(debug_img)
             plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
@@ -242,6 +254,9 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     for i in range(k):
         mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
         cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
+        cluster_vis[black_pixels] = [255, 255, 255]
+        
         plt.figure()
         plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
         plt.title(f"Cluster {i}")
