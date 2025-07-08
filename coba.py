@@ -360,9 +360,9 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         results.append((file_name, ''))
         continue
 
-    colored = modify_color(final_image)
-    cleaned_colored = remove_noise_outside_center(colored, min_area=500, max_dist_ratio=0.1)
-    recognized_number = recognize_number(cleaned_colored)
+    cleaned_colored = remove_noise_outside_center(final_image, min_area=500, max_dist_ratio=0.1)
+    colored = modify_color(cleaned_colored)
+    recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
 
     # Tampilkan hasil akhir
