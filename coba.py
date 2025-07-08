@@ -224,7 +224,7 @@ def preprocess_for_ocr(image):
     mask = cv2.dilate(mask, kernel, iterations=1)
 
     # Binarisasi ke 0 dan 255
-    _, binary = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+    _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # Invert agar objek jadi putih
     binary = cv2.bitwise_not(binary)
