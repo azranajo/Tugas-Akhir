@@ -68,7 +68,7 @@ def exit_program():
 # Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
-panel = tk.Label(root, width=320, height=320)
+panel = tk.Label(root, width=320, height=240)
 panel.pack(pady=10)
 
 button_frame = tk.Frame(root)
