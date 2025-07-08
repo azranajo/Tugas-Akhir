@@ -180,16 +180,16 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         score = largest_area / (len(contours) + 1e-5)
 
         # Visualisasi debugging
-        if debug:
-            debug_img = cluster_img.copy()
-            cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
-            cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
-            cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
-            plt.figure()
-            plt.imshow(debug_img)
-            plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
-            plt.axis('off')
-            plt.show()
+        #if debug:
+        #    debug_img = cluster_img.copy()
+        #    cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+        #    cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
+        #    cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
+        #    plt.figure()
+        #    plt.imshow(debug_img)
+        #    plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
+        #    plt.axis('off')
+        #    plt.show()
 
         # Simpan jika lebih baik dari sebelumnya
         if score > best_score:
@@ -257,11 +257,11 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
         cluster_vis[black_pixels] = [255, 255, 255]
         
-        plt.figure()
-        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-        plt.title(f"Cluster {i}")
-        plt.axis("off")
-        plt.show()
+        #plt.figure()
+        #plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+        #plt.title(f"Cluster {i}")
+        #plt.axis("off")
+        #plt.show()
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 
