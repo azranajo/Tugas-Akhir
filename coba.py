@@ -19,7 +19,7 @@ os.makedirs("data_capture", exist_ok=True)
 
 # Inisialisasi Kamera V3 (Picamera2)
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(main={"size": (320, 240)})
+config = picam2.create_preview_configuration(main={"size": (320, 320)})
 picam2.configure(config)
 
 # Mengaktifkan Autofokus
@@ -68,7 +68,7 @@ def exit_program():
 # Setup GUI
 root = tk.Tk()
 root.attributes('-fullscreen', True)
-panel = tk.Label(root, width=320, height=240)
+panel = tk.Label(root, width=320, height=320)
 panel.pack(pady=10)
 
 button_frame = tk.Frame(root)
@@ -87,7 +87,7 @@ picam2.close()
 
 # ---------- PROSES SEGMENTASI & OCR ----------
 
-def resize_image(image, max_width=320, max_height=240):
+def resize_image(image, max_width=320, max_height=320):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     return cv2.resize(image, (int(w * scale), int(h * scale)))
@@ -101,7 +101,7 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    contour_thresh = 340
+    contour_thresh = 150
     min_solidity = 0.2
     debug = True
     def circular_mask(image):
@@ -251,17 +251,17 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     segmented_image, labels = kmeans(k, pixels, shape)
 
     # --- VISUALISASI CLUSTER ---
-    for i in range(k):
-        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
-        cluster_vis[black_pixels] = [255, 255, 255]
+    #for i in range(k):
+    #    mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+    #    cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+    #    black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
+    #    cluster_vis[black_pixels] = [255, 255, 255]
         
-        plt.figure()
-        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-        plt.title(f"Cluster {i}")
-        plt.axis("off")
-        plt.show()
+    #    plt.figure()
+    #    plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+    #    plt.title(f"Cluster {i}")
+    #    plt.axis("off")
+    #    plt.show()
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 
