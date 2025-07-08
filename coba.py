@@ -223,6 +223,15 @@ def preprocess_for_ocr(image):
     kernel = np.ones((3, 3), np.uint8)
     mask = cv2.dilate(mask, kernel, iterations=1)
 
+    # Binarisasi ke 0 dan 255
+    _, binary = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
+
+    # Invert agar objek jadi putih
+    binary = cv2.bitwise_not(binary)
+
+    # Morph closing untuk mengisi lubang kecil
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
+
     return mask
 
 def show_preprocess_result(original, preprocessed):
