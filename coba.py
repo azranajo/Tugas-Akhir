@@ -219,14 +219,8 @@ def preprocess_for_ocr(image):
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
-    # Optional: dilasi ringan untuk pertebal
-    kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=1)
-
-    # Binarisasi ke 0 dan 255
+    # Treshold dan invert
     _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # Invert agar objek jadi putih
     binary = cv2.bitwise_not(binary)
 
      # Morfologi: sambungkan dan bersihkan
