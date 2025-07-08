@@ -198,7 +198,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
 
     return best_cluster
 
-def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1):
+def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1, min_solidity=0.2):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     _, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
 
@@ -217,7 +217,7 @@ def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1):
             max_area = area
 
     if min_area is None:
-        min_area = max_area * 0.3
+        min_area = max_area * 0.5
 
     cleaned = np.zeros_like(binary)
     h, w = binary.shape
@@ -236,6 +236,13 @@ def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1):
             if dist > max_dist_ratio * min(w, h):
                 continue
         else:
+            continue
+
+        # Filter berdasarkan kerapatan (solidity)
+        hull = cv2.convexHull(cnt)
+        hull_area = cv2.contourArea(hull)
+        solidity = area / (hull_area + 1e-5)
+        if solidity < min_solidity:
             continue
 
         # Tambahan: hanya ambil kontur dalam bounding box utama
