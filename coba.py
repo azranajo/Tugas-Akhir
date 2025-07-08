@@ -19,7 +19,7 @@ os.makedirs("data_capture", exist_ok=True)
 
 # Inisialisasi Kamera V3 (Picamera2)
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(main={"size": (320, 320)})
+config = picam2.create_preview_configuration(main={"size": (240, 240)})
 picam2.configure(config)
 
 # Mengaktifkan Autofokus
@@ -87,7 +87,7 @@ picam2.close()
 
 # ---------- PROSES SEGMENTASI & OCR ----------
 
-def resize_image(image, max_width=320, max_height=320):
+def resize_image(image, max_width=240, max_height=240):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     return cv2.resize(image, (int(w * scale), int(h * scale)))
