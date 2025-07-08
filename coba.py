@@ -209,9 +209,11 @@ def preprocess_for_ocr(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (3, 3), 0)
     _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    kernel = np.ones((2, 2), np.uint8)
-    dilated = cv2.dilate(thresh, kernel, iterations=1)
-    return dilated
+    
+    kernel = np.ones((3, 3), np.uint8)
+    dilated = cv2.dilate(thresh, kernel, iterations=2)
+    closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel)
+    return closing
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
@@ -234,7 +236,7 @@ def recognize_number(image):
         preprocessed = preprocess_for_ocr(image)
         # Visualisasi preprocess
         show_preprocess_result(image, preprocessed)
-        
+
         text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
         print("Hasil mentah OCR:", repr(text))  # Untuk debug
         return text.strip()
