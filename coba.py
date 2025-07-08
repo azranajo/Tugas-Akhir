@@ -221,7 +221,7 @@ def preprocess_for_ocr(image):
 
     # Optional: dilasi ringan untuk pertebal
     kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=2)
+    mask = cv2.dilate(mask, kernel, iterations=2.5)
 
     # Binarisasi ke 0 dan 255
     _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
@@ -232,7 +232,14 @@ def preprocess_for_ocr(image):
     # Morph closing untuk mengisi lubang kecil
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=3)
 
-    return binary
+    # Hapus titik-titik kecil
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cleaned = np.zeros_like(binary)
+    for cnt in contours:
+        if cv2.contourArea(cnt) > 100:
+            cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
+
+    return cleaned
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
