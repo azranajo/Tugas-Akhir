@@ -209,14 +209,23 @@ def remove_noise_outside_center(image, min_area=300, max_dist_ratio=0.2):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     _, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
 
-    # Tambahan: Buka noise kecil dengan operasi open (erosion diikuti dilasi)
     kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_open, iterations=2)
 
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # --- Temukan kontur terbesar (anggap itu angka utama) ---
+    main_contour = None
+    max_area = 0
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > max_area:
+            main_contour = cnt
+            max_area = area
+
+    cleaned = np.zeros_like(binary)
     h, w = binary.shape
     center = np.array([w // 2, h // 2])
-    cleaned = np.zeros_like(binary)
 
     for cnt in contours:
         area = cv2.contourArea(cnt)
@@ -233,14 +242,19 @@ def remove_noise_outside_center(image, min_area=300, max_dist_ratio=0.2):
         else:
             continue
 
+        # Tambahan: hanya ambil kontur dalam bounding box utama
+        if main_contour is not None:
+            x, y, bw, bh = cv2.boundingRect(main_contour)
+            if not cv2.pointPolygonTest(main_contour, (cx, cy), False) == 1:
+                if not (x <= cx <= x + bw and y <= cy <= y + bh):
+                    continue
+
         cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
 
-    # Buat versi RGB kembali
-    cleaned_rgb = cv2.merge([cleaned, cleaned, cleaned])
     result = np.full_like(image, 255)
     result[cleaned == 255] = image[cleaned == 255]
-
     return result
+
 
 def preprocess_for_ocr(image):
     # Ubah ke HSV untuk ambil warna merah
