@@ -210,35 +210,29 @@ def preprocess_for_ocr(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     # Ambil 2 rentang merah (karena merah wrap-around di HSV)
-    lower_red1 = np.array([0, 30, 30])
-    upper_red1 = np.array([15, 255, 255])
-    lower_red2 = np.array([160, 30, 30])
+    lower_red1 = np.array([0, 70, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 70, 50])
     upper_red2 = np.array([180, 255, 255])
-
 
     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
-    # Treshold dan invert
+    # Optional: dilasi ringan untuk pertebal
+    kernel = np.ones((3, 3), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+
+    # Binarisasi ke 0 dan 255
     _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Invert agar objek jadi putih
     binary = cv2.bitwise_not(binary)
 
-     # Morfologi: sambungkan dan bersihkan
-    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    # Morph closing untuk mengisi lubang kecil
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=5)
 
-    binary = cv2.dilate(binary, kernel_dilate, iterations=2)
-    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close, iterations=3)
-
-    # Filter titik kecil
-    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cleaned = np.zeros_like(binary)
-    for cnt in contours:
-        if cv2.contourArea(cnt) > 100:
-            cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
-
-    return cleaned
+    return binary
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
