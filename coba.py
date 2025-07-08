@@ -223,16 +223,38 @@ def preprocess_for_ocr(image):
     kernel = np.ones((3, 3), np.uint8)
     mask = cv2.dilate(mask, kernel, iterations=5)
 
-    # Binarisasi ke 0 dan 255
+    # Threshold dan invert
     _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # Invert agar objek jadi putih
     binary = cv2.bitwise_not(binary)
 
     # Morph closing untuk mengisi lubang kecil
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
 
-    return binary
+    # ------ HAPUS NOISE KECIL DI PINGGIR ------
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cleaned = np.zeros_like(binary)
+    h, w = binary.shape
+    center = np.array([w // 2, h // 2])
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < 100:
+            continue  # terlalu kecil = noise
+
+        # Hitung jarak dari pusat gambar ke pusat kontur
+        M = cv2.moments(cnt)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            dist = np.linalg.norm(np.array([cx, cy]) - center)
+            if dist > min(w, h) * 0.4:
+                continue  # terlalu jauh dari tengah = noise
+        else:
+            continue
+
+        cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
+
+    return cleaned
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))

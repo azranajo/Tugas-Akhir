@@ -19,7 +19,7 @@ os.makedirs("data_capture", exist_ok=True)
 
 # Inisialisasi Kamera V3 (Picamera2)
 picam2 = Picamera2()
-config = picam2.create_preview_configuration(main={"size": (320, 240)})
+config = picam2.create_preview_configuration(main={"size": (240, 240)})
 picam2.configure(config)
 
 # Mengaktifkan Autofokus
@@ -87,7 +87,7 @@ picam2.close()
 
 # ---------- PROSES SEGMENTASI & OCR ----------
 
-def resize_image(image, max_width=320, max_height=240):
+def resize_image(image, max_width=240, max_height=240):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     return cv2.resize(image, (int(w * scale), int(h * scale)))
@@ -101,7 +101,7 @@ def kmeans(k, pixel_values, shape):
     return segmented_image.reshape(shape), labels
 
 def select_cluster_by_digit_shape(segmented_image, labels, k):
-    contour_thresh = 340
+    contour_thresh = 150
     min_solidity = 0.2
     debug = True
     def circular_mask(image):
@@ -180,16 +180,16 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         score = largest_area / (len(contours) + 1e-5)
 
         # Visualisasi debugging
-        if debug:
-            debug_img = cluster_img.copy()
-            cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
-            cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
-            cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
-            plt.figure()
-            plt.imshow(debug_img)
-            plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
-            plt.axis('off')
-            plt.show()
+        #if debug:
+        #    debug_img = cluster_img.copy()
+        #    cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+        #    cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
+        #    cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
+        #    plt.figure()
+        #    plt.imshow(debug_img)
+        #    plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
+        #    plt.axis('off')
+        #    plt.show()
 
         # Simpan jika lebih baik dari sebelumnya
         if score > best_score:
@@ -206,17 +206,59 @@ def modify_color(image, hex_color="#FF0000"):
     return img
 
 def preprocess_for_ocr(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # Ubah ke HSV untuk ambil warna merah
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+    # Ambil 2 rentang merah (karena merah wrap-around di HSV)
+    lower_red1 = np.array([0, 70, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 70, 50])
+    upper_red2 = np.array([180, 255, 255])
+
+    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+    mask = cv2.bitwise_or(mask1, mask2)
+
+    # Optional: dilasi ringan untuk pertebal
     kernel = np.ones((3, 3), np.uint8)
-    closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel, iterations=1)
-    return closed
+    mask = cv2.dilate(mask, kernel, iterations=5)
+
+    # Binarisasi ke 0 dan 255
+    _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Invert agar objek jadi putih
+    binary = cv2.bitwise_not(binary)
+
+    # Morph closing untuk mengisi lubang kecil
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    return binary
+
+def show_preprocess_result(original, preprocessed):
+    plt.figure(figsize=(8, 4))
+    plt.subplot(1, 2, 1)
+    plt.imshow(original)
+    plt.title("Sebelum Preprocess")
+    plt.axis("off")
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(preprocessed, cmap='gray')
+    plt.title("Setelah Preprocess")
+    plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
 
 def recognize_number(image):
     try:
         preprocessed = preprocess_for_ocr(image)
-        text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
+        # Visualisasi preprocess
+        show_preprocess_result(image, preprocessed)
+        print("Ukuran input OCR:", preprocessed.shape)
+
+        text = pytesseract.image_to_string(preprocessed, config='--psm 7 -c tessedit_char_whitelist=0123456789')
+        print("Hasil mentah OCR:", repr(text))  # Untuk debug
         return text.strip()
     except Exception as e:
         return f"OCR Error: {str(e)}"
@@ -251,17 +293,17 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     segmented_image, labels = kmeans(k, pixels, shape)
 
     # --- VISUALISASI CLUSTER ---
-    for i in range(k):
-        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
-        cluster_vis[black_pixels] = [255, 255, 255]
+    #for i in range(k):
+    #    mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+    #    cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+    #    black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
+    #    cluster_vis[black_pixels] = [255, 255, 255]
         
-        plt.figure()
-        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-        plt.title(f"Cluster {i}")
-        plt.axis("off")
-        plt.show()
+    #    plt.figure()
+    #    plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+    #    plt.title(f"Cluster {i}")
+    #    plt.axis("off")
+    #    plt.show()
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 
