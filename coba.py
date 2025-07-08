@@ -229,10 +229,21 @@ def preprocess_for_ocr(image):
     # Invert agar objek jadi putih
     binary = cv2.bitwise_not(binary)
 
-    # Morph closing untuk mengisi lubang kecil
-    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=7)
+     # Morfologi: sambungkan dan bersihkan
+    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
 
-    return binary
+    binary = cv2.dilate(binary, kernel_dilate, iterations=2)
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel_close, iterations=3)
+
+    # Filter titik kecil
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cleaned = np.zeros_like(binary)
+    for cnt in contours:
+        if cv2.contourArea(cnt) > 100:
+            cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
+
+    return cleaned
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
