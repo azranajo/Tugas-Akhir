@@ -213,9 +213,28 @@ def preprocess_for_ocr(image):
     dilated = cv2.dilate(thresh, kernel, iterations=1)
     return dilated
 
+def show_preprocess_result(original, preprocessed):
+    plt.figure(figsize=(8, 4))
+    plt.subplot(1, 2, 1)
+    plt.imshow(original)
+    plt.title("Sebelum Preprocess")
+    plt.axis("off")
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(preprocessed, cmap='gray')
+    plt.title("Setelah Preprocess")
+    plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+
 def recognize_number(image):
     try:
         preprocessed = preprocess_for_ocr(image)
+        # Visualisasi preprocess
+        show_preprocess_result(image, preprocessed)
+        
         text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
         print("Hasil mentah OCR:", repr(text))  # Untuk debug
         return text.strip()
