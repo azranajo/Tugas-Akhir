@@ -247,7 +247,7 @@ def preprocess_for_ocr(image):
             cx = int(M["m10"] / M["m00"])
             cy = int(M["m01"] / M["m00"])
             dist = np.linalg.norm(np.array([cx, cy]) - center)
-            if dist > min(w, h) * 0.4:
+            if dist > min(w, h) * 0.9:
                 continue  # terlalu jauh dari tengah = noise
         else:
             continue
