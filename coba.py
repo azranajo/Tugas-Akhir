@@ -206,14 +206,24 @@ def modify_color(image, hex_color="#FF0000"):
     return img
 
 def preprocess_for_ocr(image):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-    _, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    kernel = np.ones((3, 3), np.uint8)
-    dilated = cv2.dilate(thresh, kernel, iterations=2)
-    closing = cv2.morphologyEx(dilated, cv2.MORPH_CLOSE, kernel)
-    return closing
+    # Ubah ke HSV untuk ambil warna merah
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+
+    # Ambil 2 rentang merah (karena merah wrap-around di HSV)
+    lower_red1 = np.array([0, 70, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 70, 50])
+    upper_red2 = np.array([180, 255, 255])
+
+    mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+    mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+    mask = cv2.bitwise_or(mask1, mask2)
+
+    # Optional: dilasi ringan untuk pertebal
+    kernel = np.ones((2, 2), np.uint8)
+    mask = cv2.dilate(mask, kernel, iterations=1)
+
+    return mask
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
