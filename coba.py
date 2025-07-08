@@ -221,7 +221,7 @@ def preprocess_for_ocr(image):
 
     # Optional: dilasi ringan untuk pertebal
     kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=4)
+    mask = cv2.dilate(mask, kernel, iterations=5)
 
     # Binarisasi ke 0 dan 255
     _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
