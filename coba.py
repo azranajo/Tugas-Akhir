@@ -220,7 +220,7 @@ def preprocess_for_ocr(image):
     mask = cv2.bitwise_or(mask1, mask2)
 
     # Optional: dilasi ringan untuk pertebal
-    kernel = np.ones((2, 2), np.uint8)
+    kernel = np.ones((3, 3), np.uint8)
     mask = cv2.dilate(mask, kernel, iterations=1)
 
     return mask
