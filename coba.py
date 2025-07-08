@@ -208,10 +208,12 @@ def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1):
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # --- Auto tuning: cari kontur terbesar dulu ---
+    main_contour = None
     max_area = 0
     for cnt in contours:
         area = cv2.contourArea(cnt)
         if area > max_area:
+            main_contour = cnt
             max_area = area
 
     if min_area is None:
@@ -363,7 +365,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         results.append((file_name, ''))
         continue
 
-    cleaned_colored = remove_noise_outside_center(final_image, min_area=500, max_dist_ratio=0.1)
+    cleaned_colored = remove_noise_outside_center(final_image)
     colored = modify_color(cleaned_colored)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
