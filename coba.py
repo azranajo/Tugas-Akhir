@@ -216,7 +216,7 @@ def preprocess_for_ocr(image):
 def recognize_number(image):
     try:
         preprocessed = preprocess_for_ocr(image)
-        text = pytesseract.image_to_string(preprocessed, config='--psm 9 -c tessedit_char_whitelist=0123456789')
+        text = pytesseract.image_to_string(preprocessed, config='--psm 8 -c tessedit_char_whitelist=0123456789')
         return text.strip()
     except Exception as e:
         return f"OCR Error: {str(e)}"
