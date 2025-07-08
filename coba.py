@@ -230,7 +230,7 @@ def preprocess_for_ocr(image):
     binary = cv2.bitwise_not(binary)
 
     # Morph closing untuk mengisi lubang kecil
-    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=5)
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=2)
 
     return binary
 
