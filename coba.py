@@ -232,7 +232,7 @@ def preprocess_for_ocr(image):
     # Morph closing untuk mengisi lubang kecil
     binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel, iterations=10)
 
-    return mask
+    return binary
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
