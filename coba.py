@@ -198,14 +198,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
 
     return best_cluster
 
-def modify_color(image, hex_color="#FF0000"):
-    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-    img = image.copy()
-    mask = (img != [255, 255, 255]).any(axis=2)
-    img[mask] = rgb
-    return img
-
-def remove_noise_outside_center(image, min_area=500, max_dist_ratio=0.1):
+def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     _, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
 
@@ -214,14 +207,15 @@ def remove_noise_outside_center(image, min_area=500, max_dist_ratio=0.1):
 
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # --- Temukan kontur terbesar (anggap itu angka utama) ---
-    main_contour = None
+    # --- Auto tuning: cari kontur terbesar dulu ---
     max_area = 0
     for cnt in contours:
         area = cv2.contourArea(cnt)
         if area > max_area:
-            main_contour = cnt
             max_area = area
+
+    if min_area is None:
+        min_area = max_area * 0.3
 
     cleaned = np.zeros_like(binary)
     h, w = binary.shape
@@ -255,6 +249,12 @@ def remove_noise_outside_center(image, min_area=500, max_dist_ratio=0.1):
     result[cleaned == 255] = image[cleaned == 255]
     return result
 
+def modify_color(image, hex_color="#FF0000"):
+    rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+    img = image.copy()
+    mask = (img != [255, 255, 255]).any(axis=2)
+    img[mask] = rgb
+    return img
 
 def preprocess_for_ocr(image):
     # Ubah ke HSV untuk ambil warna merah
@@ -270,12 +270,15 @@ def preprocess_for_ocr(image):
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
+    # Gaussian blur untuk merapikan tepi
+    blurred = cv2.GaussianBlur(mask, (5, 5), sigmaX=1)
+
     # Optional: dilasi ringan untuk pertebal
     kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=5)
+    dilated = cv2.dilate(blurred, kernel, iterations=5)
 
     # Threshold dan invert
-    _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, binary = cv2.threshold(dilated, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     binary = cv2.bitwise_not(binary)
 
     # Morph closing untuk mengisi lubang kecil
