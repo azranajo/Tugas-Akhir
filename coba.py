@@ -205,7 +205,7 @@ def modify_color(image, hex_color="#FF0000"):
     img[mask] = rgb
     return img
 
-def remove_noise_outside_center(image, min_area=1000, max_dist_ratio=0.01):
+def remove_noise_outside_center(image, min_area=300, max_dist_ratio=0.2):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     _, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
 
@@ -347,7 +347,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         continue
 
     colored = modify_color(final_image)
-    cleaned_colored = remove_noise_outside_center(colored, min_area=1000, max_dist_ratio=0.01)
+    cleaned_colored = remove_noise_outside_center(colored, min_area=300, max_dist_ratio=0.2)
     recognized_number = recognize_number(cleaned_colored)
     results.append((file_name, recognized_number))
 
