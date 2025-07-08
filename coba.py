@@ -347,7 +347,8 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         continue
 
     colored = modify_color(final_image)
-    recognized_number = recognize_number(colored)
+    cleaned_colored = remove_noise_outside_center(colored, min_area=1000, max_dist_ratio=0.01)
+    recognized_number = recognize_number(cleaned_colored)
     results.append((file_name, recognized_number))
 
     # Tampilkan hasil akhir
