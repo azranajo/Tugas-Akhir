@@ -246,6 +246,7 @@ def recognize_number(image):
         preprocessed = preprocess_for_ocr(image)
         # Visualisasi preprocess
         show_preprocess_result(image, preprocessed)
+        print("Ukuran input OCR:", preprocessed.shape)
 
         text = pytesseract.image_to_string(preprocessed, config='--psm 10 -c tessedit_char_whitelist=0123456789')
         print("Hasil mentah OCR:", repr(text))  # Untuk debug
