@@ -222,6 +222,25 @@ def recognize_number(image):
     except Exception as e:
         return f"OCR Error: {str(e)}"
 
+def visualize_preprocess(image):
+    preprocessed = preprocess_for_ocr(image)
+    
+    # Tampilkan gambar asli dan hasil preprocess
+    plt.figure(figsize=(10, 4))
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    plt.title("Gambar Asli")
+    plt.axis("off")
+
+    plt.subplot(1, 2, 2)
+    plt.imshow(preprocessed, cmap='gray')
+    plt.title("Hasil Preprocess")
+    plt.axis("off")
+
+    plt.tight_layout()
+    plt.show()
+    
 def detect_circle_and_crop(image):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     blurred = cv2.medianBlur(gray, 5)
