@@ -205,7 +205,7 @@ def modify_color(image, hex_color="#FF0000"):
     img[mask] = rgb
     return img
 
-def remove_noise_outside_center(image, min_area=100, max_dist_ratio=0.4):
+def remove_noise_outside_center(image, min_area=200, max_dist_ratio=0.3):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     _, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
 
