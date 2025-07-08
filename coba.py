@@ -211,7 +211,7 @@ def remove_noise_outside_center(image, min_area=300, max_dist_ratio=0.2):
 
     # Tambahan: Buka noise kecil dengan operasi open (erosion diikuti dilasi)
     kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_open, iterations=1)
+    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_open, iterations=2)
 
     contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     h, w = binary.shape
