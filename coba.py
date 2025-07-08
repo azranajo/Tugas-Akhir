@@ -210,10 +210,11 @@ def preprocess_for_ocr(image):
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
     # Ambil 2 rentang merah (karena merah wrap-around di HSV)
-    lower_red1 = np.array([0, 70, 50])
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 70, 50])
+    lower_red1 = np.array([0, 30, 30])
+    upper_red1 = np.array([15, 255, 255])
+    lower_red2 = np.array([160, 30, 30])
     upper_red2 = np.array([180, 255, 255])
+
 
     mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
