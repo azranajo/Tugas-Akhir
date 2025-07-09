@@ -300,12 +300,12 @@ def preprocess_for_ocr(image):
 
 def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(12, 4))
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.imshow(original)
     plt.title("Sebelum Preprocess")
     plt.axis("off")
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.imshow(preprocessed, cmap='gray')
     plt.title("Setelah Preprocess")
     plt.axis("off")
