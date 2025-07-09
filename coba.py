@@ -253,6 +253,9 @@ def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1, min_so
                     continue
 
         cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
+    # Tambahkan DILASI agar angka lebih solid
+    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    cleaned = cv2.dilate(cleaned, kernel_dilate, iterations=5)
 
     result = np.full_like(image, 255)
     result[cleaned == 255] = image[cleaned == 255]
