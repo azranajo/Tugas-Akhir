@@ -298,7 +298,7 @@ def preprocess_for_ocr(image):
 
     return binary
 
-def show_preprocess_result(original, preprocessed):
+#def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
     plt.subplot(1, 2, 1)
     plt.imshow(original)
@@ -318,7 +318,7 @@ def recognize_number(image):
     try:
         preprocessed = preprocess_for_ocr(image)
         # Visualisasi preprocess
-        show_preprocess_result(image, preprocessed)
+        #show_preprocess_result(image, preprocessed)
         print("Ukuran input OCR:", preprocessed.shape)
 
         text = pytesseract.image_to_string(preprocessed, config='--psm 7 -c tessedit_char_whitelist=0123456789')
