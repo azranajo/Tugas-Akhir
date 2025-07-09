@@ -302,7 +302,7 @@ def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 3, 1)
     plt.imshow(original)
-    plt.title("Sebelum Preprocess")
+    plt.title("Sebelum")
     plt.axis("off")
 
     plt.subplot(1, 3, 2)
