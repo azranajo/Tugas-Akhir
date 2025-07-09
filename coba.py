@@ -180,16 +180,16 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         score = largest_area / (len(contours) + 1e-5)
 
         # Visualisasi debugging
-        #if debug:
-        #    debug_img = cluster_img.copy()
-        #    cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
-        #    cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
-        #    cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
-        #    plt.figure()
-        #    plt.imshow(debug_img)
-        #    plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
-        #    plt.axis('off')
-        #    plt.show()
+        if debug:
+            debug_img = cluster_img.copy()
+            cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
+            cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
+            cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
+            plt.figure()
+            plt.imshow(debug_img)
+            plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
+            plt.axis('off')
+            plt.show()
 
         # Simpan jika lebih baik dari sebelumnya
         if score > best_score:
@@ -298,7 +298,7 @@ def preprocess_for_ocr(image):
 
     return binary
 
-#def show_preprocess_result(original, preprocessed):
+def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(8, 4))
     plt.subplot(1, 2, 1)
     plt.imshow(original)
@@ -350,6 +350,32 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     if cropped is None:
         results.append((file_name, 'Lingkaran tidak ditemukan'))
         continue
+
+    # --- VISUALISASI HASIL DETEKSI LINGKARAN & CROPPING ---
+    plt.figure(figsize=(12, 4))
+
+    # 1. Gambar asli
+    plt.subplot(1, 3, 1)
+    plt.imshow(image)
+    plt.title("Gambar Asli")
+    plt.axis("off")
+
+    # 2. Gambar hasil cropping dari lingkaran
+    plt.subplot(1, 3, 2)
+    plt.imshow(cropped)
+    plt.title("Hasil Crop Lingkaran")
+    plt.axis("off")
+
+    # 3. Gambar setelah resize
+    plt.subplot(1, 3, 3)
+    plt.imshow(resize_image(cropped))
+    plt.title("Setelah Resize")
+    plt.axis("off")
+
+    plt.suptitle(f"Preprocessing: {file_name}", fontsize=14)
+    plt.tight_layout()
+    plt.show()
+
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
@@ -357,17 +383,17 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     segmented_image, labels = kmeans(k, pixels, shape)
 
     # --- VISUALISASI CLUSTER ---
-    #for i in range(k):
-    #    mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-    #    cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-    #    black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
-    #    cluster_vis[black_pixels] = [255, 255, 255]
-        
-    #    plt.figure()
-    #    plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-    #    plt.title(f"Cluster {i}")
-    #    plt.axis("off")
-    #    plt.show()
+    for i in range(k):
+        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
+        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
+        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
+        cluster_vis[black_pixels] = [255, 255, 255]
+       
+        plt.figure()
+        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
+        plt.title(f"Cluster {i}")
+        plt.axis("off")
+        plt.show()
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 

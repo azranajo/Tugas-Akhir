@@ -23,7 +23,7 @@ config = picam2.create_preview_configuration(main={"size": (240, 240)})
 picam2.configure(config)
 
 # Mengaktifkan Autofokus
-picam2.set_controls({"AfMode": 1})  # Mode autofocus, 3 berarti Continuous Autofocus
+picam2.set_controls({"AfMode": 1})  # Mode autofocus
 
 picam2.start()
 sleep(2)
@@ -179,24 +179,76 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
         # Skor akhir (angka besar, noise kecil)
         score = largest_area / (len(contours) + 1e-5)
 
-        # Visualisasi debugging
-        #if debug:
-        #    debug_img = cluster_img.copy()
-        #    cv2.drawContours(debug_img, [largest_contour], -1, (255, 0, 0), 1)
-        #    cv2.circle(debug_img, (cx, cy), 3, (0, 255, 0), -1)         # centroid hijau
-        #    cv2.circle(debug_img, (bbox_cx, bbox_cy), 3, (255, 0, 0), -1)  # bbox biru
-        #    plt.figure()
-        #    plt.imshow(debug_img)
-        #    plt.title(f"Cluster {i} - Score: {score:.2f}, Solidity: {solidity:.2f}, Contours: {len(contours)}")
-        #    plt.axis('off')
-        #    plt.show()
-
         # Simpan jika lebih baik dari sebelumnya
         if score > best_score:
             best_score = score
             best_cluster = cluster_img
 
     return best_cluster
+
+def remove_noise_outside_center(image, min_area=None, max_dist_ratio=0.1, min_solidity=0.2):
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    _, binary = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
+
+    kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel_open, iterations=2)
+
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Auto tuning: cari kontur terbesar
+    main_contour = None
+    max_area = 0
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > max_area:
+            main_contour = cnt
+            max_area = area
+
+    if min_area is None:
+        min_area = max_area * 0.5
+
+    cleaned = np.zeros_like(binary)
+    h, w = binary.shape
+    center = np.array([w // 2, h // 2])
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area < min_area:
+            continue
+
+        M = cv2.moments(cnt)
+        if M["m00"] != 0:
+            cx = int(M["m10"] / M["m00"])
+            cy = int(M["m01"] / M["m00"])
+            dist = np.linalg.norm(np.array([cx, cy]) - center)
+            if dist > max_dist_ratio * min(w, h):
+                continue
+        else:
+            continue
+
+        # Filter berdasarkan kerapatan (solidity)
+        hull = cv2.convexHull(cnt)
+        hull_area = cv2.contourArea(hull)
+        solidity = area / (hull_area + 1e-5)
+        if solidity < min_solidity:
+            continue
+
+        # hanya ambil kontur dalam bounding box utama
+        if main_contour is not None:
+            x, y, bw, bh = cv2.boundingRect(main_contour)
+            if not cv2.pointPolygonTest(main_contour, (cx, cy), False) == 1:
+                if not (x <= cx <= x + bw and y <= cy <= y + bh):
+                    continue
+
+        cv2.drawContours(cleaned, [cnt], -1, 255, thickness=cv2.FILLED)
+
+    # dilasi agar angka lebih solid
+    kernel_dilate = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    cleaned = cv2.dilate(cleaned, kernel_dilate, iterations=5)
+
+    result = np.full_like(image, 255)
+    result[cleaned == 255] = image[cleaned == 255]
+    return result
 
 def modify_color(image, hex_color="#FF0000"):
     rgb = tuple(int(hex_color.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
@@ -219,14 +271,15 @@ def preprocess_for_ocr(image):
     mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
     mask = cv2.bitwise_or(mask1, mask2)
 
-    # Optional: dilasi ringan untuk pertebal
+    # Gaussian blur untuk merapikan tepi
+    blurred = cv2.GaussianBlur(mask, (5, 5), sigmaX=1)
+
+    # dilasi ringan untuk pertebal bentuk
     kernel = np.ones((3, 3), np.uint8)
-    mask = cv2.dilate(mask, kernel, iterations=5)
+    dilated = cv2.dilate(blurred, kernel, iterations=5)
 
-    # Binarisasi ke 0 dan 255
-    _, binary = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # Invert agar objek jadi putih
+    # Threshold dan invert
+    _, binary = cv2.threshold(dilated, 100, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     binary = cv2.bitwise_not(binary)
 
     # Morph closing untuk mengisi lubang kecil
@@ -234,28 +287,9 @@ def preprocess_for_ocr(image):
 
     return binary
 
-def show_preprocess_result(original, preprocessed):
-    plt.figure(figsize=(8, 4))
-    plt.subplot(1, 2, 1)
-    plt.imshow(original)
-    plt.title("Sebelum Preprocess")
-    plt.axis("off")
-
-    plt.subplot(1, 2, 2)
-    plt.imshow(preprocessed, cmap='gray')
-    plt.title("Setelah Preprocess")
-    plt.axis("off")
-
-    plt.tight_layout()
-    plt.show()
-
-
 def recognize_number(image):
     try:
         preprocessed = preprocess_for_ocr(image)
-        # Visualisasi preprocess
-        show_preprocess_result(image, preprocessed)
-        print("Ukuran input OCR:", preprocessed.shape)
 
         text = pytesseract.image_to_string(preprocessed, config='--psm 7 -c tessedit_char_whitelist=0123456789')
         print("Hasil mentah OCR:", repr(text))  # Untuk debug
@@ -292,26 +326,14 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     k = 9
     segmented_image, labels = kmeans(k, pixels, shape)
 
-    # --- VISUALISASI CLUSTER ---
-    #for i in range(k):
-    #    mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-    #    cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-    #    black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
-    #    cluster_vis[black_pixels] = [255, 255, 255]
-        
-    #    plt.figure()
-    #    plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-    #    plt.title(f"Cluster {i}")
-    #    plt.axis("off")
-    #    plt.show()
-
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 
     if final_image is None:
         results.append((file_name, ''))
         continue
 
-    colored = modify_color(final_image)
+    cleaned_colored = remove_noise_outside_center(final_image)
+    colored = modify_color(cleaned_colored)
     recognized_number = recognize_number(colored)
     results.append((file_name, recognized_number))
 
