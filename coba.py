@@ -299,6 +299,7 @@ def preprocess_for_ocr(image):
     return binary
 
 def show_preprocess_result(original, preprocessed):
+    plt.figure(figsize=(12, 4))
     plt.subplot(1, 2, 1)
     plt.imshow(original)
     plt.title("Sebelum Preprocess")
