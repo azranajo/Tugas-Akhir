@@ -355,30 +355,6 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         results.append((file_name, 'Lingkaran tidak ditemukan'))
         continue
 
-    # --- VISUALISASI HASIL DETEKSI LINGKARAN & CROPPING ---
-    plt.figure(figsize=(12, 4))
-
-    # 1. Gambar asli
-    plt.subplot(1, 3, 1)
-    plt.imshow(image)
-    plt.title("Gambar Asli")
-    plt.axis("off")
-
-    # 2. Gambar hasil cropping dari lingkaran
-    plt.subplot(1, 3, 2)
-    plt.imshow(cropped)
-    plt.title("Hasil Crop Lingkaran")
-    plt.axis("off")
-
-    # 3. Gambar setelah resize
-    plt.subplot(1, 3, 3)
-    plt.imshow(resize_image(cropped))
-    plt.title("Setelah Resize")
-    plt.axis("off")
-
-    plt.suptitle(f"Preprocessing: {file_name}", fontsize=14)
-    plt.tight_layout()
-    plt.show()
 
     resized = resize_image(cropped)
     shape = resized.shape
