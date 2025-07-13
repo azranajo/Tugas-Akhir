@@ -375,7 +375,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     else:
         sampled_pixels = pixels  # Gunakan semua jika < 5000
 
-    for k_try in range(8, 11):  # Range nilai K
+    for k_try in range(7, 11):  # Range nilai K
         try:
             segmented_k, labels_k = kmeans(k_try, pixels, shape)
             # Ambil label untuk piksel yang disampling
