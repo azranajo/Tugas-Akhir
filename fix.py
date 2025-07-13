@@ -10,6 +10,7 @@ from tqdm import tqdm
 from time import sleep
 from PIL import Image, ImageTk
 from picamera2 import Picamera2
+from sklearn.metrics import silhouette_score  # Untuk menentukan nilai K terbaik
 
 # Konfigurasi Tesseract
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
