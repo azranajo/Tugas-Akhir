@@ -10,7 +10,6 @@ from tqdm import tqdm
 from time import sleep
 from PIL import Image, ImageTk
 from picamera2 import Picamera2
-from sklearn.metrics import silhouette_score  # Untuk menentukan nilai K terbaik
 
 # Konfigurasi Tesseract
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
@@ -92,6 +91,25 @@ def resize_image(image, max_width=240, max_height=240):
     h, w = image.shape[:2]
     scale = min(max_width / w, max_height / h)
     return cv2.resize(image, (int(w * scale), int(h * scale)))
+
+def calculate_wcss(pixels, max_k=10):
+    wcss = []
+    for k in range(2, max_k + 1):
+        _, labels, centers = cv2.kmeans(pixels, k, None,
+                                        (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2),
+                                        10, cv2.KMEANS_PP_CENTERS)
+        centers = np.uint8(centers)
+        labels = labels.flatten()
+        segmented = centers[labels].reshape(-1, 3)
+        sse = np.sum((pixels - segmented.astype(np.float32)) ** 2)
+        wcss.append(sse)
+    return wcss
+
+def find_elbow_point(wcss):
+    deltas = np.diff(wcss)
+    second_deltas = np.diff(deltas)
+    elbow_k = np.argmin(second_deltas) + 3  # +3 karena diff mengurangi indeks dua kali
+    return elbow_k
 
 def kmeans(k, pixel_values, shape):
     criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.2)
@@ -302,7 +320,7 @@ def preprocess_for_ocr(image):
 
     return binary
 
-#def show_preprocess_result(original, preprocessed):
+def show_preprocess_result(original, preprocessed):
     plt.figure(figsize=(12, 4))
     plt.subplot(1, 3, 1)
     plt.imshow(original)
@@ -322,7 +340,7 @@ def recognize_number(image):
     try:
         preprocessed = preprocess_for_ocr(image)
         # Visualisasi preprocess
-        #show_preprocess_result(image, preprocessed)
+        show_preprocess_result(image, preprocessed)
         print("Ukuran input OCR:", preprocessed.shape)
 
         text = pytesseract.image_to_string(preprocessed, config='--psm 7 -c tessedit_char_whitelist=0123456789')
@@ -355,51 +373,53 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         results.append((file_name, 'Lingkaran tidak ditemukan'))
         continue
 
+    # --- VISUALISASI HASIL DETEKSI LINGKARAN & CROPPING ---
+    plt.figure(figsize=(12, 4))
+
+    # 1. Gambar asli
+    plt.subplot(1, 3, 1)
+    plt.imshow(image)
+    plt.title("Gambar Asli")
+    plt.axis("off")
+
+    # 2. Gambar hasil cropping dari lingkaran
+    plt.subplot(1, 3, 2)
+    plt.imshow(cropped)
+    plt.title("Hasil Crop Lingkaran")
+    plt.axis("off")
+
+    # 3. Gambar setelah resize
+    plt.subplot(1, 3, 3)
+    plt.imshow(resize_image(cropped))
+    plt.title("Setelah Resize")
+    plt.axis("off")
+
+    plt.suptitle(f"Preprocessing: {file_name}", fontsize=14)
+    plt.tight_layout()
+    plt.show()
 
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
 
+    # Cari nilai K optimal dengan Elbow Method
+    wcss = calculate_wcss(pixels, max_k=10)
+    
+    # Plot Elbow Method
+    plt.figure()
+    plt.plot(range(2, 11), wcss, marker='o')
+    plt.title(f"Elbow Method untuk {file_name}")
+    plt.xlabel("Jumlah Klaster (K)")
+    plt.ylabel("WCSS")
+    plt.grid(True)
+    plt.show()
 
-    # Menentukan nilai K terbaik otomatis dengan Silhouette Score
-    best_score = -1
-    best_k = 2
-    best_labels = None
-    best_segmented = None
+    # Tentukan nilai K optimal
+    k = find_elbow_point(wcss)
+    print(f"[{file_name}] Nilai K optimal berdasarkan Elbow: {k}")
 
-    # Sampling acak maksimal 5000 piksel dari array pixels
-    sample_size = 3000
-    if len(pixels) > sample_size:
-        sample_indices = np.random.choice(len(pixels), size=sample_size, replace=False)
-        sampled_pixels = pixels[sample_indices]
-    else:
-        sampled_pixels = pixels  # Gunakan semua jika < 5000
-
-    for k_try in range(7, 11):  # Range nilai K
-        try:
-            segmented_k, labels_k = kmeans(k_try, pixels, shape)
-            # Ambil label untuk piksel yang disampling
-            if len(pixels) > sample_size:
-                sampled_labels = labels_k.flatten()[sample_indices]
-            else:
-                sampled_labels = labels_k.flatten()
-        
-            score = silhouette_score(sampled_pixels, sampled_labels)
-            if score > best_score:
-                best_score = score
-                best_k = k_try
-                best_labels = labels_k
-                best_segmented = segmented_k
-            
-        except Exception as e:
-            print(f"Silhouette error untuk K={k_try}: {e}")
-            continue
-
-    print(f"Nilai K terbaik untuk {file_name}: {best_k} (Silhouette Score: {best_score:.4f})")
-
-    segmented_image = best_segmented
-    labels = best_labels
-    k = best_k
+    # Segmentasi dengan K optimal
+    segmented_image, labels = kmeans(k, pixels, shape)
 
     # --- VISUALISASI CLUSTER ---
     for i in range(k):
@@ -415,7 +435,6 @@ for file_name, image in tqdm(image_list, desc="Processing"):
         plt.show()
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
-
     if final_image is None:
         results.append((file_name, ''))
         continue
