@@ -5,6 +5,7 @@ matplotlib.use('Agg')  # Gunakan backend non-GUI agar tidak error di Pi tanpa la
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+from sklearn.utils import shuffle
 
 # Load gambar (pastikan file ada di direktori yang sama)
 img = cv2.imread('captured_0.jpg')  # Ganti path jika perlu
@@ -18,6 +19,10 @@ if img is None:
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = cv2.resize(img, (100, 100))  # Ukuran kecil agar hemat RAM
 img_reshaped = img.reshape((-1, 3))
+
+# Sampling 5000 data untuk evaluasi silhouette
+sample_size = min(5000, len(img_reshaped))
+img_sample = shuffle(img_reshaped, random_state=42)[:sample_size]
 
 # Simpan WCSS dan Silhouette Score
 wcss = []
@@ -33,8 +38,9 @@ for k in K_range:
 
     wcss.append(kmeans.inertia_)
 
+    sample_labels = kmeans.predict(img_sample)
     try:
-        score = silhouette_score(img_reshaped, labels)
+        score = silhouette_score(img_sample, sample_labels)
         silhouette_scores.append(score)
     except Exception as e:
         print(f"⚠️ Gagal menghitung silhouette score untuk K={k}: {e}")
