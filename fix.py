@@ -324,7 +324,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
     
-    k = 5
+    k = 6
     segmented_image, labels = kmeans(k, pixels, shape)
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
