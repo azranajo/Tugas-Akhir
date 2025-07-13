@@ -10,7 +10,6 @@ from tqdm import tqdm
 from time import sleep
 from PIL import Image, ImageTk
 from picamera2 import Picamera2
-from sklearn.metrics import silhouette_score  # Untuk menentukan nilai K terbaik
 
 # Konfigurasi Tesseract
 pytesseract.pytesseract.tesseract_cmd = r'/usr/bin/tesseract'
@@ -324,31 +323,9 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     resized = resize_image(cropped)
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
-
-    # Menentukan nilai K terbaik otomatis dengan Silhouette Score
-    best_score = -1
-    best_k = 2
-    best_labels = None
-    best_segmented = None
-
-    for k_try in range(2, 10):  # Range nilai K dari 2 hingga 10
-        try:
-            segmented_k, labels_k = kmeans(k_try, pixels, shape)
-            score = silhouette_score(pixels, labels_k)
-            if score > best_score:
-                best_score = score
-                best_k = k_try
-                best_labels = labels_k
-                best_segmented = segmented_k
-        except Exception as e:
-            print(f"Silhouette error untuk K={k_try}: {e}")
-            continue
-
-    print(f"Nilai K terbaik untuk {file_name}: {best_k} (Silhouette Score: {best_score:.4f})")
-
-    segmented_image = best_segmented
-    labels = best_labels
-    k = best_k
+    
+    k = 9
+    segmented_image, labels = kmeans(k, pixels, shape)
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 
