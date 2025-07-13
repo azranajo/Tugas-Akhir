@@ -390,15 +390,15 @@ for file_name, image in tqdm(image_list, desc="Processing"):
                 best_k = k_try
                 best_labels = labels_k
                 best_segmented = segmented_k
-            # Simpan/visualisasi sementara
-            plt.imshow(segmented_k)
-            plt.title(f"K={k_try}, Silhouette={score:.4f}")
-            plt.axis('off')
-            plt.savefig(f"segmentasi_k_{k_try}.png")
+            
         except Exception as e:
             print(f"Silhouette error untuk K={k_try}: {e}")
             continue
-
+        # Simpan/visualisasi sementara
+        plt.imshow(segmented_k)
+        plt.title(f"K={k_try}, Silhouette={score:.4f}")
+        plt.axis('off')
+        plt.savefig(f"segmentasi_k_{k_try}.png")
     print(f"Nilai K terbaik untuk {file_name}: {best_k} (Silhouette Score: {best_score:.4f})")
 
     segmented_image = best_segmented
