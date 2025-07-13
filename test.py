@@ -196,7 +196,7 @@ def select_cluster_by_digit_shape(segmented_image, labels, k):
             continue
 
         # Skor akhir (angka besar, noise kecil)
-        score = largest_area / (len(contours) + 1e-5)
+        score = largest_area * solidity / (len(contours) + 1e-5)
 
         # Simpan jika lebih baik dari sebelumnya
         if score > best_score:
