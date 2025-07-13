@@ -324,21 +324,8 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     shape = resized.shape
     pixels = resized.reshape(-1, 3).astype(np.float32)
     
-    k = 6
+    k = 9
     segmented_image, labels = kmeans(k, pixels, shape)
-
-    # --- VISUALISASI CLUSTER ---
-    for i in range(k):
-        mask_cluster = (labels == i).astype("uint8").reshape(shape[:2]) * 255
-        cluster_vis = cv2.bitwise_and(resized, resized, mask=mask_cluster)
-        black_pixels = np.all(cluster_vis == [0, 0, 0], axis=-1)
-        cluster_vis[black_pixels] = [255, 255, 255]
-       
-        plt.figure()
-        plt.imshow(cv2.cvtColor(cluster_vis, cv2.COLOR_BGR2RGB))
-        plt.title(f"Cluster {i}")
-        plt.axis("off")
-        plt.show()
 
     final_image = select_cluster_by_digit_shape(segmented_image, labels, k)
 
