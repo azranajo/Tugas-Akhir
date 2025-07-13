@@ -363,7 +363,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
 
     # Menentukan nilai K terbaik otomatis dengan Silhouette Score
     best_score = -1
-    best_k = 2
+    best_k = 3
     best_labels = None
     best_segmented = None
 
@@ -375,7 +375,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     else:
         sampled_pixels = pixels  # Gunakan semua jika < 5000
 
-    for k_try in range(2, 11):  # Range nilai K dari 2 hingga 10
+    for k_try in range(3, 11):  # Range nilai K dari 2 hingga 10
         try:
             segmented_k, labels_k = kmeans(k_try, pixels, shape)
             # Ambil label untuk piksel yang disampling
@@ -390,6 +390,11 @@ for file_name, image in tqdm(image_list, desc="Processing"):
                 best_k = k_try
                 best_labels = labels_k
                 best_segmented = segmented_k
+            # Simpan/visualisasi sementara
+            plt.imshow(segmented_k)
+            plt.title(f"K={k_try}, Silhouette={score:.4f}")
+            plt.axis('off')
+            plt.savefig(f"segmentasi_k_{k_try}.png")
         except Exception as e:
             print(f"Silhouette error untuk K={k_try}: {e}")
             continue
