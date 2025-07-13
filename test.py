@@ -16,6 +16,7 @@ if img is None:
 
 # Konversi BGR ke RGB
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+img = cv2.resize(img, (100, 100))  # Ukuran kecil agar hemat RAM
 img_reshaped = img.reshape((-1, 3))
 
 # Simpan WCSS dan Silhouette Score
@@ -23,11 +24,22 @@ wcss = []
 silhouette_scores = []
 K_range = range(2, 11)
 
+print("🔄 Sedang mengevaluasi K...")
+
 for k in K_range:
+    print(f"> Mengevaluasi K = {k}")
     kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
     labels = kmeans.fit_predict(img_reshaped)
+
     wcss.append(kmeans.inertia_)
-    silhouette_scores.append(silhouette_score(img_reshaped, labels))
+
+    try:
+        score = silhouette_score(img_reshaped, labels)
+        silhouette_scores.append(score)
+    except Exception as e:
+        print(f"⚠️ Gagal menghitung silhouette score untuk K={k}: {e}")
+        silhouette_scores.append(0)
+
 
 # Plot hasil dan simpan sebagai gambar (karena RPi mungkin tidak punya GUI)
 plt.figure(figsize=(12, 5))
