@@ -391,7 +391,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     best_labels = None
     best_segmented = None
 
-    for k_try in range(2, 11):  # Range nilai K dari 2 hingga 10
+    for k_try in range(2, 10):  # Range nilai K dari 2 hingga 10
         try:
             segmented_k, labels_k = kmeans(k_try, pixels, shape)
             score = silhouette_score(pixels, labels_k)
