@@ -48,7 +48,7 @@ for k in K_range:
 
 
 # Plot hasil dan simpan sebagai gambar (karena RPi mungkin tidak punya GUI)
-plt.figure(figsize=(5, 5))
+plt.figure(figsize=(10, 5))
 
 plt.subplot(1, 2, 1)
 plt.plot(K_range, wcss, 'bo-', linewidth=2)
