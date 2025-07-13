@@ -368,7 +368,7 @@ for file_name, image in tqdm(image_list, desc="Processing"):
     best_segmented = None
 
     # Sampling acak maksimal 5000 piksel dari array pixels
-    sample_size = 5000
+    sample_size = 3000
     if len(pixels) > sample_size:
         sample_indices = np.random.choice(len(pixels), size=sample_size, replace=False)
         sampled_pixels = pixels[sample_indices]
